@@ -12,7 +12,7 @@ else
     local CA = ElvUI_Castbar_Anchors
     local LibDBIcon = LibStub("LibDBIcon-1.0")
 
-    CA.version = "2.3.6"
+    CA.version = "2.3.7"
     CA.updateTickers = {}
     CA.selectedCastbar = "player"
     CA.useCharacterSettings = false
@@ -106,7 +106,7 @@ else
             end
         end)
         
-        print("|cff00d4ffElvUI Castbar Anchors|r v" .. CA.version .. " loaded (Standalone). Type |cffffd700/ca|r for settings.")
+        print("|cff00d4ffElvUI Castbar Anchors|r v" .. CA.version .. " loaded. |cffffd700/ca|r for settings.")
     end
 
     function CA:GetActiveDB(castbarType)
@@ -216,7 +216,7 @@ else
         end)
         
         self:UpdateCastbarPosition(castbarType)
-        print("|cff00d4ffElvUI Castbar Anchors:|r " .. string.upper(castbarType) .. " castbar anchoring to " .. db.anchorFrame)
+        -- Silently anchor without chat spam
         
         -- Hook frame updates (with combat protection)
         local anchorFrame = _G[db.anchorFrame]

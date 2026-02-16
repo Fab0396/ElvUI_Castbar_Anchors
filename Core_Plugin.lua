@@ -10,7 +10,7 @@ local MyMod = E:NewModule('ElvUI_Castbar_Anchors', 'AceEvent-3.0', 'AceHook-3.0'
 local EP = LibStub("LibElvUIPlugin-1.0")
 local LibDBIcon = LibStub("LibDBIcon-1.0")
 
-MyMod.version = "2.3.6"
+MyMod.version = "2.3.7"
 
 local CASTBAR_FRAMES = {
     player = "ElvUF_Player_CastBar",
@@ -134,7 +134,7 @@ function MyMod:StartAnchoring(castbarType)
     end, true)
     
     self:UpdateCastbarPosition(castbarType)
-    print("|cff00d4ffElvUI Castbar Anchors:|r " .. string.upper(castbarType) .. " castbar anchoring to " .. db.anchorFrame)
+    -- Silently anchor without chat spam
     
     -- Hook into frame updates to detect changes
     self:HookFrameUpdates(castbarType)
@@ -538,7 +538,7 @@ function MyMod:Initialize()
         end
     end)
     
-    print("|cff00d4ffElvUI Castbar Anchors|r v" .. self.version .. " loaded (Plugin Mode). Type |cffffd700/ec|r to configure.")
+    print("|cff00d4ffElvUI Castbar Anchors|r v" .. self.version .. " loaded. |cffffd700/ec|r to configure.")
 end
 
 function MyMod:PLAYER_ENTERING_WORLD()

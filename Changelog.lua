@@ -60,44 +60,43 @@ local function SetupChangelog()
         f.text:SetJustifyH("LEFT")
         f.text:SetWidth(430)
         f.text:SetText([[
+|cffFFD100v2.3.7 - No More Chat Spam!|r
+|cff00d4ffQuality of Life|r
+- ✅ Removed repetitive anchor messages
+- ✅ No more chat spam on reload/UI changes
+- ✅ Silent re-anchoring (still works perfectly!)
+- ✅ Only shows initial load message
+
+|cff00d4ffBefore v2.3.7|r
+Every reload/UI change spammed:
+"ElvUI Castbar Anchors: TARGET castbar anchoring to..."
+"ElvUI Castbar Anchors: PLAYER castbar anchoring to..."
+"ElvUI Castbar Anchors: FOCUS castbar anchoring to..."
+(6+ messages every time!) ❌
+
+|cff00d4ffAfter v2.3.7|r
+On /reload you see:
+"ElvUI Castbar Anchors v2.3.7 loaded. /ec to configure."
+
+That's it! Clean and quiet! ✅
+
+---
+
 |cffFFD100v2.3.6 - Complete Forbidden Protection|r
-|cff00d4ffCritical Fix|r
-- ✅ COMPLETE protection against forbidden errors
-- ✅ All frame access wrapped in pcall()
-- ✅ Silently catches and ignores forbidden access
-- ✅ All hooks protected (SetPoint, Show, SetSize)
-- ✅ Safe IsShown() checks
-- ✅ ZERO errors guaranteed
-
-|cff00d4ffWhat Was Protected|r
-- UpdateCastbarPosition: Full pcall wrapper
-- Hook setup: Protected hook creation
-- Frame property access: Safe checks
-- IsShown() calls: Wrapped in pcall
-- All _G[frameName] lookups: Protected
-
-|cff00d4ffHow It Works|r
-Every operation that could access forbidden data:
-  ↓
-Wrapped in pcall(function() ... end)
-  ↓
-If forbidden error occurs → Silently caught
-  ↓
-Addon continues normally ✅
-
-Result: IMPOSSIBLE to get forbidden errors!
-Even if frames become forbidden mid-operation,
-the error is caught and ignored.
+- ✅ ZERO forbidden errors possible
+- ✅ All frame access protected with pcall()
 
 ---
 
 |cffFFD100v2.3.5 - Safe Hook System|r
-- ✅ Hook-based detection instead of inspection
-- ✅ More ElvUI hooks added
+- ✅ Hook-based detection
+- ✅ More ElvUI hooks
 
 ---
 
 |cffFFD100v2.3.4 - LibDBIcon Fix|r
+- ✅ Fixed minimap icon errors
+]])
 - ✅ Fixed minimap icon errors
 ]])
 
@@ -126,7 +125,7 @@ initFrame:SetScript("OnEvent", function(self, event)
     
     -- Check version
     E:Delay(5, function()
-        local currentVersion = "2.3.6"
+        local currentVersion = "2.3.7"
         local MyMod = E:GetModule('ElvUI_Castbar_Anchors', true)
         
         if MyMod and ElvUI_Castbar_Anchors_Version ~= currentVersion then
