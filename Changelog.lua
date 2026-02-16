@@ -97,8 +97,6 @@ That's it! Clean and quiet! ✅
 |cffFFD100v2.3.4 - LibDBIcon Fix|r
 - ✅ Fixed minimap icon errors
 ]])
-- ✅ Fixed minimap icon errors
-]])
 
         content:SetHeight(f.text:GetStringHeight() + 20)
 
