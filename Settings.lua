@@ -4,6 +4,13 @@ local CA = ElvUI_Castbar_Anchors
 -- Only load if not in ElvUI plugin mode
 if not CA then return end
 
+-- IMMEDIATE DEBUG OUTPUT
+print("|cffFF0000=====================================|r")
+print("|cffFF0000SETTINGS.LUA LOADED SUCCESSFULLY!|r")
+print("|cffFF0000Version: 2.8.8-debug|r")
+print("|cffFF0000CA exists:|r", CA ~= nil)
+print("|cffFF0000=====================================|r")
+
 -- Anchor point options
 local anchorPoints = {
     "TOPLEFT", "TOP", "TOPRIGHT",
@@ -287,21 +294,19 @@ function CA:PopulateTabContent(content, castbarType)
     UIDropDownMenu_Initialize(content.suggestedDropdown, function(self, level)
         local suggestions = {}
         if castbarType == "player" then
-            table.insert(suggestions, {text = "Player Frame", value = "ElvUF_Player"})
             table.insert(suggestions, {text = "Player Health Bar", value = "ElvUF_Player_HealthBar"})
             table.insert(suggestions, {text = "Player Power Bar", value = "ElvUF_Player_PowerBar"})
-            table.insert(suggestions, {text = "Pet Frame", value = "ElvUF_Pet"})
             table.insert(suggestions, {text = "Pet Health Bar", value = "ElvUF_Pet_HealthBar"})
             table.insert(suggestions, {text = "Pet Power Bar", value = "ElvUF_Pet_PowerBar"})
         elseif castbarType == "target" then
-            table.insert(suggestions, {text = "Target Frame", value = "ElvUF_Target"})
             table.insert(suggestions, {text = "Target Health Bar", value = "ElvUF_Target_HealthBar"})
             table.insert(suggestions, {text = "Target Power Bar", value = "ElvUF_Target_PowerBar"})
         elseif castbarType == "focus" then
-            table.insert(suggestions, {text = "Focus Frame", value = "ElvUF_Focus"})
             table.insert(suggestions, {text = "Focus Health Bar", value = "ElvUF_Focus_HealthBar"})
             table.insert(suggestions, {text = "Focus Power Bar", value = "ElvUF_Focus_PowerBar"})
         end
+        -- Add common addons for all types
+        table.insert(suggestions, {text = "Essential Cooldown Viewer", value = "EssentialCooldownViewer"})
         table.insert(suggestions, {text = "Screen Center", value = "UIParent"})
         
         for _, item in ipairs(suggestions) do
@@ -309,9 +314,17 @@ function CA:PopulateTabContent(content, castbarType)
             info.text = item.text
             info.value = item.value
             info.func = function()
+                print("|cffFF00FF=== DROPDOWN CLICKED ===|r")
+                print("|cffFF00FFSelected:|r", item.text)
+                print("|cffFF00FFValue:|r", item.value)
+                
                 CA.selectedCastbar = castbarType
                 CA:SetAnchorFrame(item.value)
                 UIDropDownMenu_SetText(content.suggestedDropdown, item.text)
+                
+                print("|cffFF00FFCalling UpdateSettingsUI...|r")
+                CA:UpdateSettingsUI()
+                print("|cffFF00FFUpdateSettingsUI completed|r")
             end
             UIDropDownMenu_AddButton(info)
         end
@@ -362,6 +375,7 @@ function CA:PopulateTabContent(content, castbarType)
         if name and name ~= "" then
             CA.selectedCastbar = castbarType
             CA:SetAnchorFrame(name)
+            CA:UpdateSettingsUI()
         end
     end)
     content.anchorButton:SetScript("OnEnter", function(self) self.bg:SetColorTexture(0.25, 0.6, 0.25, 1) end)
@@ -420,7 +434,6 @@ function CA:PopulateTabContent(content, castbarType)
         
         UIDropDownMenu_Initialize(content.petDropdown, function(self, level)
             local suggestions = {
-                {text = "Pet Frame", value = "ElvUF_Pet"},
                 {text = "Pet Health Bar", value = "ElvUF_Pet_HealthBar"},
                 {text = "Pet Power Bar", value = "ElvUF_Pet_PowerBar"},
             }
@@ -643,6 +656,335 @@ function CA:PopulateTabContent(content, castbarType)
     
     yOffset = yOffset - 40
     
+    -- Normal Frame Width (shows only for unitframe anchors)
+    content.normalFrameWidthLabel = content:CreateFontString(nil, "OVERLAY")
+    content.normalFrameWidthLabel:SetFont("Fonts\\FRIZQT__.TTF", 11)
+    content.normalFrameWidthLabel:SetPoint("TOPLEFT", 5, yOffset)
+    content.normalFrameWidthLabel:SetText("Castbar Width (Unitframes only):")
+    content.normalFrameWidthLabel:SetTextColor(0.7, 0.7, 0.7)
+    content.normalFrameWidthLabel:Hide()  -- Start hidden
+    
+    content.normalFrameWidthSlider = CreateFrame("Slider", "CA_NormalFrameWidth_"..castbarType, content, "OptionsSliderTemplate")
+    content.normalFrameWidthSlider:SetPoint("TOPLEFT", 20, yOffset - 25)
+    content.normalFrameWidthSlider:SetMinMaxValues(50, 500)
+    content.normalFrameWidthSlider:SetValueStep(1)
+    content.normalFrameWidthSlider:SetObeyStepOnDrag(true)
+    content.normalFrameWidthSlider:SetWidth(200)
+    content.normalFrameWidthSlider.castbarType = castbarType
+    content.normalFrameWidthSlider:Hide()  -- Start hidden
+    _G["CA_NormalFrameWidth_"..castbarType.."Low"]:SetText("50")
+    _G["CA_NormalFrameWidth_"..castbarType.."High"]:SetText("500")
+    
+    content.normalFrameWidthInput = CreateFrame("EditBox", nil, content, "InputBoxTemplate")
+    content.normalFrameWidthInput:SetSize(60, 25)
+    content.normalFrameWidthInput:SetPoint("LEFT", content.normalFrameWidthSlider, "RIGHT", 15, 0)
+    content.normalFrameWidthInput:SetAutoFocus(false)
+    content.normalFrameWidthInput:SetMaxLetters(3)
+    content.normalFrameWidthInput:SetJustifyH("CENTER")
+    content.normalFrameWidthInput:SetText("270")
+    content.normalFrameWidthInput:Hide()  -- Start hidden
+    
+    content.normalFrameWidthSlider:SetScript("OnValueChanged", function(self, value)
+        local db = CA:GetActiveDB(self.castbarType)
+        db.normalFrameWidth = value
+        content.normalFrameWidthInput:SetText(value)
+        CA:UpdateCastbarPosition(self.castbarType)
+    end)
+    
+    content.normalFrameWidthInput:SetScript("OnEnterPressed", function(self)
+        local text = self:GetText()
+        local value = tonumber(text) or 270
+        value = math.max(50, math.min(500, value))
+        local db = CA:GetActiveDB(castbarType)
+        db.normalFrameWidth = value
+        content.normalFrameWidthSlider:SetValue(value)
+        self:SetText(value)
+        self:ClearFocus()
+        CA:UpdateCastbarPosition(castbarType)
+    end)
+    
+    content.normalFrameWidthInput:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
+    
+    yOffset = yOffset - 60
+    
+    -- Normal Frame Height (shows only for unitframe anchors)
+    content.normalFrameHeightLabel = content:CreateFontString(nil, "OVERLAY")
+    content.normalFrameHeightLabel:SetFont("Fonts\\FRIZQT__.TTF", 11)
+    content.normalFrameHeightLabel:SetPoint("TOPLEFT", 5, yOffset)
+    content.normalFrameHeightLabel:SetText("Castbar Height (Unitframes only):")
+    content.normalFrameHeightLabel:SetTextColor(0.7, 0.7, 0.7)
+    content.normalFrameHeightLabel:Hide()  -- Start hidden
+    
+    content.normalFrameHeightSlider = CreateFrame("Slider", "CA_NormalFrameHeight_"..castbarType, content, "OptionsSliderTemplate")
+    content.normalFrameHeightSlider:SetPoint("TOPLEFT", 20, yOffset - 25)
+    content.normalFrameHeightSlider:SetMinMaxValues(5, 100)
+    content.normalFrameHeightSlider:SetValueStep(1)
+    content.normalFrameHeightSlider:SetObeyStepOnDrag(true)
+    content.normalFrameHeightSlider:SetWidth(200)
+    content.normalFrameHeightSlider.castbarType = castbarType
+    content.normalFrameHeightSlider:Hide()  -- Start hidden
+    _G["CA_NormalFrameHeight_"..castbarType.."Low"]:SetText("5")
+    _G["CA_NormalFrameHeight_"..castbarType.."High"]:SetText("100")
+    
+    content.normalFrameHeightInput = CreateFrame("EditBox", nil, content, "InputBoxTemplate")
+    content.normalFrameHeightInput:SetSize(60, 25)
+    content.normalFrameHeightInput:SetPoint("LEFT", content.normalFrameHeightSlider, "RIGHT", 15, 0)
+    content.normalFrameHeightInput:SetAutoFocus(false)
+    content.normalFrameHeightInput:SetMaxLetters(3)
+    content.normalFrameHeightInput:SetJustifyH("CENTER")
+    content.normalFrameHeightInput:SetText("18")
+    content.normalFrameHeightInput:Hide()  -- Start hidden
+    
+    content.normalFrameHeightSlider:SetScript("OnValueChanged", function(self, value)
+        local db = CA:GetActiveDB(self.castbarType)
+        db.normalFrameHeight = value
+        content.normalFrameHeightInput:SetText(value)
+        CA:UpdateCastbarPosition(self.castbarType)
+    end)
+    
+    content.normalFrameHeightInput:SetScript("OnEnterPressed", function(self)
+        local text = self:GetText()
+        local value = tonumber(text) or 18
+        value = math.max(5, math.min(100, value))
+        local db = CA:GetActiveDB(castbarType)
+        db.normalFrameHeight = value
+        content.normalFrameHeightSlider:SetValue(value)
+        self:SetText(value)
+        self:ClearFocus()
+        CA:UpdateCastbarPosition(castbarType)
+    end)
+    
+    content.normalFrameHeightInput:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
+    
+    yOffset = yOffset - 30
+    
+    -- Match Width checkbox
+    content.matchWidthCheckbox = CreateFrame("CheckButton", nil, content, "UICheckButtonTemplate")
+    content.matchWidthCheckbox:SetPoint("TOPLEFT", 5, yOffset)
+    content.matchWidthCheckbox:SetSize(20, 20)
+    content.matchWidthCheckbox.text:SetFont("Fonts\\FRIZQT__.TTF", 11)
+    content.matchWidthCheckbox.text:SetText("Match Anchor Width (EssentialCooldownViewer only)")
+    content.matchWidthCheckbox.text:SetTextColor(0.9, 0.9, 0.9)
+    content.matchWidthCheckbox:SetScript("OnClick", function(self)
+        local db = CA:GetActiveDB(castbarType)
+        db.matchWidth = self:GetChecked()
+        CA:UpdateCastbarPosition(castbarType)
+        -- Show/hide border adjustment based on match width state
+        if db.matchWidth then
+            content.borderAdjustLabel:Show()
+            content.borderAdjustSlider:Show()
+            content.borderAdjustInput:Show()
+            content.borderAdjustHelp:Show()
+        else
+            content.borderAdjustLabel:Hide()
+            content.borderAdjustSlider:Hide()
+            content.borderAdjustInput:Hide()
+            content.borderAdjustHelp:Hide()
+        end
+    end)
+    
+    yOffset = yOffset - 30
+    
+    -- Border Adjustment slider
+    content.borderAdjustLabel = content:CreateFontString(nil, "OVERLAY")
+    content.borderAdjustLabel:SetFont("Fonts\\FRIZQT__.TTF", 11)
+    content.borderAdjustLabel:SetPoint("TOPLEFT", 20, yOffset)
+    content.borderAdjustLabel:SetText("Border Adjust:")
+    content.borderAdjustLabel:SetTextColor(0.7, 0.7, 0.7)
+    
+    content.borderAdjustSlider = CreateFrame("Slider", "CA_BorderAdjust_"..castbarType, content, "OptionsSliderTemplate")
+    content.borderAdjustSlider:SetPoint("LEFT", content.borderAdjustLabel, "RIGHT", 15, 0)
+    content.borderAdjustSlider:SetMinMaxValues(0, 10)
+    content.borderAdjustSlider:SetValueStep(1)
+    content.borderAdjustSlider:SetObeyStepOnDrag(true)
+    content.borderAdjustSlider:SetWidth(180)
+    content.borderAdjustSlider.castbarType = castbarType
+    _G["CA_BorderAdjust_"..castbarType.."Low"]:SetText("0px")
+    _G["CA_BorderAdjust_"..castbarType.."High"]:SetText("10px")
+    
+    content.borderAdjustInput = CreateFrame("EditBox", nil, content, "InputBoxTemplate")
+    content.borderAdjustInput:SetSize(55, 25)
+    content.borderAdjustInput:SetPoint("LEFT", content.borderAdjustSlider, "RIGHT", 15, 0)
+    content.borderAdjustInput:SetAutoFocus(false)
+    content.borderAdjustInput:SetMaxLetters(2)
+    content.borderAdjustInput:SetJustifyH("CENTER")
+    content.borderAdjustInput:SetText("0")
+    
+    content.borderAdjustSlider:SetScript("OnValueChanged", function(self, value)
+        local db = CA:GetActiveDB(self.castbarType)
+        db.borderAdjust = value
+        content.borderAdjustInput:SetText(value)
+        CA:UpdateCastbarPosition(self.castbarType)
+    end)
+    
+    content.borderAdjustInput:SetScript("OnEnterPressed", function(self)
+        local text = self:GetText()
+        local value = tonumber(text) or 0
+        value = math.max(0, math.min(10, value))
+        local db = CA:GetActiveDB(castbarType)
+        db.borderAdjust = value
+        content.borderAdjustSlider:SetValue(value)
+        self:SetText(value)
+        self:ClearFocus()
+        CA:UpdateCastbarPosition(castbarType)
+    end)
+    
+    content.borderAdjustInput:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
+    
+    yOffset = yOffset - 25
+    
+    content.borderAdjustHelp = content:CreateFontString(nil, "OVERLAY")
+    content.borderAdjustHelp:SetFont("Fonts\\FRIZQT__.TTF", 9)
+    content.borderAdjustHelp:SetPoint("TOPLEFT", 20, yOffset)
+    content.borderAdjustHelp:SetTextColor(0.5, 0.5, 0.5)
+    content.borderAdjustHelp:SetText("For 2px borders, set to 2. Automatically centers - no X offset needed!")
+    
+    yOffset = yOffset - 30
+    
+    -- EssentialCooldownViewer X Offset
+    content.essentialCDOffsetXLabel = content:CreateFontString(nil, "OVERLAY")
+    content.essentialCDOffsetXLabel:SetFont("Fonts\\FRIZQT__.TTF", 11)
+    content.essentialCDOffsetXLabel:SetPoint("TOPLEFT", 20, yOffset)
+    content.essentialCDOffsetXLabel:SetText("EssentialCD X:")
+    content.essentialCDOffsetXLabel:SetTextColor(0.7, 0.7, 0.7)
+    
+    content.essentialCDOffsetXSlider = CreateFrame("Slider", "CA_EssentialCDOffsetX_"..castbarType, content, "OptionsSliderTemplate")
+    content.essentialCDOffsetXSlider:SetPoint("LEFT", content.essentialCDOffsetXLabel, "RIGHT", 15, 0)
+    content.essentialCDOffsetXSlider:SetMinMaxValues(-500, 500)
+    content.essentialCDOffsetXSlider:SetValueStep(1)
+    content.essentialCDOffsetXSlider:SetObeyStepOnDrag(true)
+    content.essentialCDOffsetXSlider:SetWidth(180)
+    content.essentialCDOffsetXSlider.castbarType = castbarType
+    _G["CA_EssentialCDOffsetX_"..castbarType.."Low"]:SetText("-500")
+    _G["CA_EssentialCDOffsetX_"..castbarType.."High"]:SetText("500")
+    
+    content.essentialCDOffsetXInput = CreateFrame("EditBox", nil, content, "InputBoxTemplate")
+    content.essentialCDOffsetXInput:SetSize(55, 25)
+    content.essentialCDOffsetXInput:SetPoint("LEFT", content.essentialCDOffsetXSlider, "RIGHT", 15, 0)
+    content.essentialCDOffsetXInput:SetAutoFocus(false)
+    content.essentialCDOffsetXInput:SetMaxLetters(4)
+    content.essentialCDOffsetXInput:SetJustifyH("CENTER")
+    content.essentialCDOffsetXInput:SetText("0")
+    
+    content.essentialCDOffsetXSlider:SetScript("OnValueChanged", function(self, value)
+        local db = CA:GetActiveDB(self.castbarType)
+        db.essentialCDOffsetX = value
+        content.essentialCDOffsetXInput:SetText(value)
+        CA:UpdateCastbarPosition(self.castbarType)
+    end)
+    
+    content.essentialCDOffsetXInput:SetScript("OnEnterPressed", function(self)
+        local text = self:GetText()
+        local value = tonumber(text) or 0
+        value = math.max(-500, math.min(500, value))
+        local db = CA:GetActiveDB(castbarType)
+        db.essentialCDOffsetX = value
+        content.essentialCDOffsetXSlider:SetValue(value)
+        self:SetText(value)
+        self:ClearFocus()
+        CA:UpdateCastbarPosition(castbarType)
+    end)
+    
+    content.essentialCDOffsetXInput:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
+    
+    yOffset = yOffset - 35
+    
+    -- EssentialCooldownViewer Y Offset
+    content.essentialCDOffsetYLabel = content:CreateFontString(nil, "OVERLAY")
+    content.essentialCDOffsetYLabel:SetFont("Fonts\\FRIZQT__.TTF", 11)
+    content.essentialCDOffsetYLabel:SetPoint("TOPLEFT", 20, yOffset)
+    content.essentialCDOffsetYLabel:SetText("EssentialCD Y:")
+    content.essentialCDOffsetYLabel:SetTextColor(0.7, 0.7, 0.7)
+    
+    content.essentialCDOffsetYSlider = CreateFrame("Slider", "CA_EssentialCDOffsetY_"..castbarType, content, "OptionsSliderTemplate")
+    content.essentialCDOffsetYSlider:SetPoint("LEFT", content.essentialCDOffsetYLabel, "RIGHT", 15, 0)
+    content.essentialCDOffsetYSlider:SetMinMaxValues(-500, 500)
+    content.essentialCDOffsetYSlider:SetValueStep(1)
+    content.essentialCDOffsetYSlider:SetObeyStepOnDrag(true)
+    content.essentialCDOffsetYSlider:SetWidth(180)
+    content.essentialCDOffsetYSlider.castbarType = castbarType
+    _G["CA_EssentialCDOffsetY_"..castbarType.."Low"]:SetText("-500")
+    _G["CA_EssentialCDOffsetY_"..castbarType.."High"]:SetText("500")
+    
+    content.essentialCDOffsetYInput = CreateFrame("EditBox", nil, content, "InputBoxTemplate")
+    content.essentialCDOffsetYInput:SetSize(55, 25)
+    content.essentialCDOffsetYInput:SetPoint("LEFT", content.essentialCDOffsetYSlider, "RIGHT", 15, 0)
+    content.essentialCDOffsetYInput:SetAutoFocus(false)
+    content.essentialCDOffsetYInput:SetMaxLetters(4)
+    content.essentialCDOffsetYInput:SetJustifyH("CENTER")
+    content.essentialCDOffsetYInput:SetText("0")
+    
+    content.essentialCDOffsetYSlider:SetScript("OnValueChanged", function(self, value)
+        local db = CA:GetActiveDB(self.castbarType)
+        db.essentialCDOffsetY = value
+        content.essentialCDOffsetYInput:SetText(value)
+        CA:UpdateCastbarPosition(self.castbarType)
+    end)
+    
+    content.essentialCDOffsetYInput:SetScript("OnEnterPressed", function(self)
+        local text = self:GetText()
+        local value = tonumber(text) or 0
+        value = math.max(-500, math.min(500, value))
+        local db = CA:GetActiveDB(castbarType)
+        db.essentialCDOffsetY = value
+        content.essentialCDOffsetYSlider:SetValue(value)
+        self:SetText(value)
+        self:ClearFocus()
+        CA:UpdateCastbarPosition(castbarType)
+    end)
+    
+    content.essentialCDOffsetYInput:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
+    
+    yOffset = yOffset - 35
+    
+    -- EssentialCooldownViewer Height
+    content.essentialCDHeightLabel = content:CreateFontString(nil, "OVERLAY")
+    content.essentialCDHeightLabel:SetFont("Fonts\\FRIZQT__.TTF", 11)
+    content.essentialCDHeightLabel:SetPoint("TOPLEFT", 20, yOffset)
+    content.essentialCDHeightLabel:SetText("EssentialCD Height:")
+    content.essentialCDHeightLabel:SetTextColor(0.7, 0.7, 0.7)
+    
+    content.essentialCDHeightSlider = CreateFrame("Slider", "CA_EssentialCDHeight_"..castbarType, content, "OptionsSliderTemplate")
+    content.essentialCDHeightSlider:SetPoint("LEFT", content.essentialCDHeightLabel, "RIGHT", 15, 0)
+    content.essentialCDHeightSlider:SetMinMaxValues(5, 100)
+    content.essentialCDHeightSlider:SetValueStep(1)
+    content.essentialCDHeightSlider:SetObeyStepOnDrag(true)
+    content.essentialCDHeightSlider:SetWidth(180)
+    content.essentialCDHeightSlider.castbarType = castbarType
+    _G["CA_EssentialCDHeight_"..castbarType.."Low"]:SetText("5")
+    _G["CA_EssentialCDHeight_"..castbarType.."High"]:SetText("100")
+    
+    content.essentialCDHeightInput = CreateFrame("EditBox", nil, content, "InputBoxTemplate")
+    content.essentialCDHeightInput:SetSize(55, 25)
+    content.essentialCDHeightInput:SetPoint("LEFT", content.essentialCDHeightSlider, "RIGHT", 15, 0)
+    content.essentialCDHeightInput:SetAutoFocus(false)
+    content.essentialCDHeightInput:SetMaxLetters(3)
+    content.essentialCDHeightInput:SetJustifyH("CENTER")
+    content.essentialCDHeightInput:SetText("18")
+    
+    content.essentialCDHeightSlider:SetScript("OnValueChanged", function(self, value)
+        local db = CA:GetActiveDB(self.castbarType)
+        db.essentialCDHeight = value
+        content.essentialCDHeightInput:SetText(value)
+        CA:UpdateCastbarPosition(self.castbarType)
+    end)
+    
+    content.essentialCDHeightInput:SetScript("OnEnterPressed", function(self)
+        local text = self:GetText()
+        local value = tonumber(text) or 18
+        value = math.max(5, math.min(100, value))
+        local db = CA:GetActiveDB(castbarType)
+        db.essentialCDHeight = value
+        content.essentialCDHeightSlider:SetValue(value)
+        self:SetText(value)
+        self:ClearFocus()
+        CA:UpdateCastbarPosition(castbarType)
+    end)
+    
+    content.essentialCDHeightInput:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
+    
+    yOffset = yOffset - 30
+    
     -- Separator
     local sep2 = content:CreateTexture(nil, "ARTWORK")
     sep2:SetHeight(1)
@@ -743,7 +1085,12 @@ function CA:SelectTab(castbarType)
 end
 
 function CA:UpdateTabContent(content, castbarType)
+    print("|cff00FFFF=== UpdateTabContent called ===|r")
+    print("|cff00FFFFcastbarType:|r", castbarType)
+    
     local db = CA:GetActiveDB(castbarType)
+    
+    print("|cff00FFFFdb.anchorFrame:|r", db.anchorFrame or "nil")
     
     content.enableCheckbox:SetChecked(db.enabled)
     
@@ -782,12 +1129,140 @@ function CA:UpdateTabContent(content, castbarType)
     content.offsetXInput:SetText(db.offsetX or 0)
     content.offsetYInput:SetText(db.offsetY or 0)
     
+    content.matchWidthCheckbox:SetChecked(db.matchWidth or false)
+    content.borderAdjustSlider:SetValue(db.borderAdjust or 0)
+    content.borderAdjustInput:SetText(db.borderAdjust or 0)
+    
+    -- Enable/disable match width controls based on anchor frame
+    local isEssentialCD = (db.anchorFrame == "EssentialCooldownViewer")
+    local isUnitframeAnchor = (db.anchorFrame and (db.anchorFrame:match("HealthBar") or db.anchorFrame:match("PowerBar")))
+    
+    if isEssentialCD then
+        content.matchWidthCheckbox:Enable()
+        content.matchWidthCheckbox.text:SetTextColor(0.9, 0.9, 0.9)
+    else
+        content.matchWidthCheckbox:Disable()
+        content.matchWidthCheckbox:SetChecked(false)
+        db.matchWidth = false
+        content.matchWidthCheckbox.text:SetTextColor(0.5, 0.5, 0.5)
+    end
+    
+    -- Show/hide border adjustment based on match width state and anchor frame
+    if db.matchWidth and isEssentialCD then
+        content.borderAdjustLabel:Show()
+        content.borderAdjustSlider:Show()
+        content.borderAdjustInput:Show()
+        content.borderAdjustHelp:Show()
+    else
+        content.borderAdjustLabel:Hide()
+        content.borderAdjustSlider:Hide()
+        content.borderAdjustInput:Hide()
+        content.borderAdjustHelp:Hide()
+    end
+    
+    -- Show/hide EssentialCD offset sliders based on anchor frame
+    if isEssentialCD then
+        content.essentialCDOffsetXLabel:Show()
+        content.essentialCDOffsetXSlider:Show()
+        content.essentialCDOffsetXInput:Show()
+        content.essentialCDOffsetYLabel:Show()
+        content.essentialCDOffsetYSlider:Show()
+        content.essentialCDOffsetYInput:Show()
+        content.essentialCDHeightLabel:Show()
+        content.essentialCDHeightSlider:Show()
+        content.essentialCDHeightInput:Show()
+        
+        -- Set values
+        content.essentialCDOffsetXSlider:SetValue(db.essentialCDOffsetX or 0)
+        content.essentialCDOffsetXInput:SetText(db.essentialCDOffsetX or 0)
+        content.essentialCDOffsetYSlider:SetValue(db.essentialCDOffsetY or 0)
+        content.essentialCDOffsetYInput:SetText(db.essentialCDOffsetY or 0)
+        content.essentialCDHeightSlider:SetValue(db.essentialCDHeight or 18)
+        content.essentialCDHeightInput:SetText(db.essentialCDHeight or 18)
+    else
+        content.essentialCDOffsetXLabel:Hide()
+        content.essentialCDOffsetXSlider:Hide()
+        content.essentialCDOffsetXInput:Hide()
+        content.essentialCDOffsetYLabel:Hide()
+        content.essentialCDOffsetYSlider:Hide()
+        content.essentialCDOffsetYInput:Hide()
+        content.essentialCDHeightLabel:Hide()
+        content.essentialCDHeightSlider:Hide()
+        content.essentialCDHeightInput:Hide()
+    end
+    
+    -- Show/hide normal frame width/height sliders (only for unitframe anchors, opposite of EssentialCD)
+    if isUnitframeAnchor then
+        print("|cff00FF00CASTBAR ANCHORS: isUnitframeAnchor = TRUE|r")
+        print("|cff00FF00Showing normal frame sliders for anchor:|r", db.anchorFrame or "nil")
+        
+        -- If not set yet, read from ElvUI database as default
+        if not db.normalFrameWidth or not db.normalFrameHeight then
+            local unitKey = castbarType
+            if E and E.db and E.db.unitframe and E.db.unitframe.units and E.db.unitframe.units[unitKey] and E.db.unitframe.units[unitKey].castbar then
+                if not db.normalFrameWidth then
+                    db.normalFrameWidth = E.db.unitframe.units[unitKey].castbar.width or 270
+                    print("|cffFFFF00Read width from ElvUI:|r", db.normalFrameWidth)
+                end
+                if not db.normalFrameHeight then
+                    db.normalFrameHeight = E.db.unitframe.units[unitKey].castbar.height or 18
+                    print("|cffFFFF00Read height from ElvUI:|r", db.normalFrameHeight)
+                end
+            end
+        end
+        
+        -- Check if sliders exist
+        if content.normalFrameWidthLabel then
+            content.normalFrameWidthLabel:Show()
+            print("|cff00FF00Called Show() on normalFrameWidthLabel|r")
+        else
+            print("|cffFF0000normalFrameWidthLabel does not exist!|r")
+        end
+        
+        if content.normalFrameWidthSlider then
+            content.normalFrameWidthSlider:Show()
+            print("|cff00FF00Called Show() on normalFrameWidthSlider|r")
+        else
+            print("|cffFF0000normalFrameWidthSlider does not exist!|r")
+        end
+        
+        content.normalFrameWidthInput:Show()
+        content.normalFrameHeightLabel:Show()
+        content.normalFrameHeightSlider:Show()
+        content.normalFrameHeightInput:Show()
+        
+        -- Set values
+        content.normalFrameWidthSlider:SetValue(db.normalFrameWidth or 270)
+        content.normalFrameWidthInput:SetText(db.normalFrameWidth or 270)
+        content.normalFrameHeightSlider:SetValue(db.normalFrameHeight or 18)
+        content.normalFrameHeightInput:SetText(db.normalFrameHeight or 18)
+        
+        print("|cff00FF00Set values - Width:|r", db.normalFrameWidth or 270, "|cff00FF00Height:|r", db.normalFrameHeight or 18)
+    else
+        print("|cffFF0000CASTBAR ANCHORS: isUnitframeAnchor = FALSE|r")
+        print("|cffFF0000Hiding normal frame sliders for anchor:|r", db.anchorFrame or "nil")
+        
+        content.normalFrameWidthLabel:Hide()
+        content.normalFrameWidthSlider:Hide()
+        content.normalFrameWidthInput:Hide()
+        content.normalFrameHeightLabel:Hide()
+        content.normalFrameHeightSlider:Hide()
+        content.normalFrameHeightInput:Hide()
+    end
+    
     content.updateRateSlider:SetValue(db.updateRate or 0.05)
     content.updateRateInput:SetText(string.format("%.2f", db.updateRate or 0.05))
 end
 
 function CA:UpdateSettingsUI()
-    if not CA_SettingsFrame then return end
+    print("|cffFFFF00=== UpdateSettingsUI called ===|r")
+    
+    if not CA_SettingsFrame then 
+        print("|cffFF0000CA_SettingsFrame does not exist!|r")
+        return 
+    end
+    
+    print("|cffFFFF00CA_SettingsFrame exists|r")
     
     local frame = CA_SettingsFrame
     
@@ -799,9 +1274,22 @@ function CA:UpdateSettingsUI()
         frame.minimapCheckbox:SetChecked(not CA.db.minimap.hide)
     end
     
+    print("|cffFFFF00selectedCastbar:|r", CA.selectedCastbar or "nil")
+    
     local content = frame.tabContent and frame.tabContent[CA.selectedCastbar]
     if content then
+        print("|cffFFFF00Content frame found, calling UpdateTabContent|r")
         CA:UpdateTabContent(content, CA.selectedCastbar)
+        print("|cffFFFF00UpdateTabContent completed|r")
+    else
+        print("|cffFF0000Content frame NOT found!|r")
+        print("|cffFF0000frame.tabContent:|r", frame.tabContent)
+        if frame.tabContent then
+            print("|cffFF0000Available keys:|r")
+            for k,v in pairs(frame.tabContent) do
+                print("|cffFF0000  Key:|r", k)
+            end
+        end
     end
 end
 

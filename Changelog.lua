@@ -49,53 +49,117 @@ local function SetupChangelog()
                 scrollbar:SetAlpha(0)
             end
         end)
-
-        local content = CreateFrame("Frame", nil, sf)
-        content:SetSize(440, 1000)
+        
+        local content = CreateFrame("Frame")
         sf:SetScrollChild(content)
+        content:SetWidth(430)
 
+        -- Content Text
         f.text = content:CreateFontString(nil, "OVERLAY")
-        f.text:FontTemplate(nil, 14)
-        f.text:SetPoint("TOPLEFT", 5, -5)
+        f.text:FontTemplate(nil, 12)
+        f.text:SetPoint("TOPLEFT", 0, 0)
         f.text:SetJustifyH("LEFT")
         f.text:SetWidth(430)
         f.text:SetText([[
-|cffFFD100v2.3.7 - No More Chat Spam!|r
-|cff00d4ffQuality of Life|r
-- ✅ Removed repetitive anchor messages
-- ✅ No more chat spam on reload/UI changes
-- ✅ Silent re-anchoring (still works perfectly!)
-- ✅ Only shows initial load message
+|cffFFD100v2.9.0 - FINALLY IN THE RIGHT FILE!|r
+|cff00d4ffTHE REAL FIX!|r
 
-|cff00d4ffBefore v2.3.7|r
-Every reload/UI change spammed:
-"ElvUI Castbar Anchors: TARGET castbar anchoring to..."
-"ElvUI Castbar Anchors: PLAYER castbar anchoring to..."
-"ElvUI Castbar Anchors: FOCUS castbar anchoring to..."
-(6+ messages every time!) ❌
+|cffFF0000The Problem (v2.8.0-2.8.8):|r
+I was adding sliders to Settings.lua, which is
+ONLY for standalone mode!
 
-|cff00d4ffAfter v2.3.7|r
-On /reload you see:
-"ElvUI Castbar Anchors v2.3.7 loaded. /ec to configure."
+You're using ElvUI Plugin Mode, so Settings.lua
+never loads! That's why there was no debug output
+and no sliders!
 
-That's it! Clean and quiet! ✅
+|cff00FF00The Solution (v2.9.0):|r
+Added the sliders to Core_Plugin.lua where the
+plugin mode settings actually live!
+
+|cffFFFF00NEW: Width & Height Sliders!|r
+Now in the CORRECT file for plugin mode:
+
+✅ "Castbar Width (Unitframes only)" slider
+   - Min: 50, Max: 500
+   - Only enabled when anchored to Health/Power bars
+   - Auto-reads from ElvUI on first load
+   - Shows your actual ElvUI width (e.g., 274)
+
+✅ "Castbar Height (Unitframes only)" slider
+   - Min: 5, Max: 100
+   - Only enabled when anchored to Health/Power bars
+   - Auto-reads from ElvUI on first load
+   - Shows your actual ElvUI height (e.g., 36)
+
+|cff00d4ffWhere To Find Them:|r
+ElvUI > Plugins > Castbar Anchors > Player
+
+Under "Anchor Settings" group:
+- Anchor Point
+- Relative Point
+- X Offset
+- Y Offset
+- |cff00FF00Castbar Width (Unitframes only)|r ← NEW!
+- |cff00FF00Castbar Height (Unitframes only)|r ← NEW!
+- Match Anchor Width
+- (EssentialCD settings...)
+
+|cffFFFF00How They Work:|r
+Anchored to "Player Power Bar":
+✅ Width slider ENABLED (bright)
+✅ Height slider ENABLED (bright)
+✅ Shows values from ElvUI (274 × 36)
+
+Anchored to "Essential Cooldown Viewer":
+❌ Width slider DISABLED (greyed out)
+❌ Height slider DISABLED (greyed out)
+✅ EssentialCD sliders enabled instead
+
+Anchored to "Screen Center":
+❌ Width slider DISABLED (greyed out)
+❌ Height slider DISABLED (greyed out)
+
+|cffFFFF00Why It Works Now:|r
+Before: Added to Settings.lua (standalone mode)
+→ Plugin mode never loaded Settings.lua
+→ Sliders never appeared ❌
+
+After: Added to Core_Plugin.lua (plugin mode)
+→ Plugin mode loads Core_Plugin.lua
+→ Sliders appear in ElvUI settings! ✅
+
+|cff00d4ffHow To Use:|r
+1. Open ElvUI > Plugins > Castbar Anchors
+2. Click "Player" tab
+3. Enable the player castbar
+4. Select "Player Power Bar" from Quick Select
+5. Scroll down to "Anchor Settings"
+6. YOU SHOULD SEE:
+   - "Castbar Width (Unitframes only)" slider
+   - "Castbar Height (Unitframes only)" slider
+7. Adjust to match your setup!
+
+The sliders will:
+- Start with your current ElvUI values
+- Only work for Health/Power bar anchors
+- Grey out for other anchor types
+- Update the castbar size in real-time
+
+|cffFFFF00Technical Note:|r
+ElvUI Plugin Mode vs Standalone Mode:
+- Plugin Mode: Uses Core_Plugin.lua (InsertOptions)
+- Standalone Mode: Uses Settings.lua (ShowSettingsUI)
+
+You're in Plugin Mode, so the sliders needed to
+be in Core_Plugin.lua, not Settings.lua!
 
 ---
 
-|cffFFD100v2.3.6 - Complete Forbidden Protection|r
-- ✅ ZERO forbidden errors possible
-- ✅ All frame access protected with pcall()
-
----
-
-|cffFFD100v2.3.5 - Safe Hook System|r
-- ✅ Hook-based detection
-- ✅ More ElvUI hooks
-
----
-
-|cffFFD100v2.3.4 - LibDBIcon Fix|r
-- ✅ Fixed minimap icon errors
+|cffFFD100v2.8.0-2.8.8 - Wrong File!|r
+- Added sliders to Settings.lua (standalone)
+- You're using plugin mode
+- Settings.lua never loaded
+- That's why nothing worked!
 ]])
 
         content:SetHeight(f.text:GetStringHeight() + 20)
@@ -109,26 +173,9 @@ That's it! Clean and quiet! ✅
         if S and S.HandleButton then
             S:HandleButton(close)
         end
+
+        f:Show()
     end
 end
 
--- Version Check logic - delay until module is loaded
-local initFrame = CreateFrame("Frame")
-initFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
-initFrame:SetScript("OnEvent", function(self, event)
-    self:UnregisterEvent("PLAYER_ENTERING_WORLD")
-    
-    -- Setup changelog function
-    SetupChangelog()
-    
-    -- Check version
-    E:Delay(5, function()
-        local currentVersion = "2.3.7"
-        local MyMod = E:GetModule('ElvUI_Castbar_Anchors', true)
-        
-        if MyMod and ElvUI_Castbar_Anchors_Version ~= currentVersion then
-            MyMod:ShowChangelog()
-            ElvUI_Castbar_Anchors_Version = currentVersion
-        end
-    end)
-end)
+E:Delay(1, SetupChangelog)

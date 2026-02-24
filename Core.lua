@@ -12,7 +12,7 @@ else
     local CA = ElvUI_Castbar_Anchors
     local LibDBIcon = LibStub("LibDBIcon-1.0")
 
-    CA.version = "2.3.7"
+    CA.version = "2.7.2"
     CA.updateTickers = {}
     CA.selectedCastbar = "player"
     CA.useCharacterSettings = false
@@ -31,9 +31,9 @@ else
             ElvUI_Castbar_Anchors_GlobalDB = {
                 minimap = { hide = false, minimapPos = 220 },
                 castbars = {
-                    player = { enabled = false, anchorFrame = nil, anchorPoint = "CENTER", relativePoint = "CENTER", offsetX = 0, offsetY = 0, updateRate = 0.05, usePetFrame = false, petAnchorFrame = nil },
-                    target = { enabled = false, anchorFrame = nil, anchorPoint = "CENTER", relativePoint = "CENTER", offsetX = 0, offsetY = 0, updateRate = 0.05 },
-                    focus = { enabled = false, anchorFrame = nil, anchorPoint = "CENTER", relativePoint = "CENTER", offsetX = 0, offsetY = 0, updateRate = 0.05 },
+                    player = { enabled = false, anchorFrame = nil, anchorPoint = "CENTER", relativePoint = "CENTER", offsetX = 0, offsetY = 0, updateRate = 0.05, usePetFrame = false, petAnchorFrame = nil, normalFrameWidth = nil, normalFrameHeight = nil },
+                    target = { enabled = false, anchorFrame = nil, anchorPoint = "CENTER", relativePoint = "CENTER", offsetX = 0, offsetY = 0, updateRate = 0.05, normalFrameWidth = nil, normalFrameHeight = nil },
+                    focus = { enabled = false, anchorFrame = nil, anchorPoint = "CENTER", relativePoint = "CENTER", offsetX = 0, offsetY = 0, updateRate = 0.05, normalFrameWidth = nil, normalFrameHeight = nil },
                 },
             }
         end
@@ -41,9 +41,9 @@ else
         if not ElvUI_Castbar_Anchors_CharDB then
             ElvUI_Castbar_Anchors_CharDB = {
                 castbars = {
-                    player = { enabled = false, anchorFrame = nil, anchorPoint = "CENTER", relativePoint = "CENTER", offsetX = 0, offsetY = 0, updateRate = 0.05, usePetFrame = false, petAnchorFrame = nil },
-                    target = { enabled = false, anchorFrame = nil, anchorPoint = "CENTER", relativePoint = "CENTER", offsetX = 0, offsetY = 0, updateRate = 0.05 },
-                    focus = { enabled = false, anchorFrame = nil, anchorPoint = "CENTER", relativePoint = "CENTER", offsetX = 0, offsetY = 0, updateRate = 0.05 },
+                    player = { enabled = false, anchorFrame = nil, anchorPoint = "CENTER", relativePoint = "CENTER", offsetX = 0, offsetY = 0, updateRate = 0.05, usePetFrame = false, petAnchorFrame = nil, normalFrameWidth = nil, normalFrameHeight = nil },
+                    target = { enabled = false, anchorFrame = nil, anchorPoint = "CENTER", relativePoint = "CENTER", offsetX = 0, offsetY = 0, updateRate = 0.05, normalFrameWidth = nil, normalFrameHeight = nil },
+                    focus = { enabled = false, anchorFrame = nil, anchorPoint = "CENTER", relativePoint = "CENTER", offsetX = 0, offsetY = 0, updateRate = 0.05, normalFrameWidth = nil, normalFrameHeight = nil },
                 },
             }
         end
@@ -106,7 +106,6 @@ else
             end
         end)
         
-        print("|cff00d4ffElvUI Castbar Anchors|r v" .. CA.version .. " loaded. |cffffd700/ca|r for settings.")
     end
 
     function CA:GetActiveDB(castbarType)
@@ -130,7 +129,8 @@ else
         -- Wrap everything in pcall to catch forbidden errors
         local success, err = pcall(function()
             local targetAnchorFrameName = db.anchorFrame
-            if castbarType == "player" and db.usePetFrame and db.petAnchorFrame then
+            -- Skip pet override if EssentialCooldownViewer is selected
+            if castbarType == "player" and db.usePetFrame and db.petAnchorFrame and db.anchorFrame ~= "EssentialCooldownViewer" then
                 if UnitExists("pet") then
                     local petFrame = _G[db.petAnchorFrame]
                     if petFrame and petFrame:IsShown() then
@@ -155,7 +155,119 @@ else
             
             -- FORCE re-anchor by clearing ALL points first
             castbar:ClearAllPoints()
-            castbar:SetPoint(db.anchorPoint or "CENTER", anchorFrame, db.relativePoint or "CENTER", db.offsetX or 0, db.offsetY or 0)
+            
+            -- The ACTUAL frame we're anchoring to
+            local actualAnchorFrameName = targetAnchorFrameName
+            
+            -- CRITICAL: Check what USER selected (db.anchorFrame), not the actual frame (which may be pet override)
+            if db.anchorFrame == "EssentialCooldownViewer" and db.matchWidth then
+                -- EssentialCooldownViewer mode with width matching enabled
+                -- IMPORTANT: Use actual EssentialCooldownViewer frame, not pet override
+                local essentialFrame = _G["EssentialCooldownViewer"]
+                if not essentialFrame then
+                    return -- EssentialCooldownViewer not found
+                end
+                
+                local anchorWidth = essentialFrame:GetWidth()
+                if anchorWidth and anchorWidth > 0 then
+                    -- Apply border adjustment to width
+                    local borderAdjust = (db.borderAdjust or 0) * 2
+                    castbar:SetWidth(anchorWidth - borderAdjust)
+                    
+                    -- Set height for EssentialCooldownViewer
+                    local height = db.essentialCDHeight or 18
+                    castbar:SetHeight(height)
+                    
+                    -- Fix icon size to match height (square icon)
+                    if castbar.Icon then
+                        castbar.Icon:SetSize(height, height)
+                    end
+                    
+                    -- Use EssentialCooldownViewer-specific offsets with border centering
+                    local finalOffsetX = (db.essentialCDOffsetX or 0) + (db.borderAdjust or 0)
+                    local finalOffsetY = db.essentialCDOffsetY or 0
+                    
+                    castbar:SetPoint(db.anchorPoint or "CENTER", essentialFrame, db.relativePoint or "CENTER", finalOffsetX, finalOffsetY)
+                else
+                    -- Fallback - use EssentialCD offsets without width matching
+                    local finalOffsetX = db.essentialCDOffsetX or 0
+                    local finalOffsetY = db.essentialCDOffsetY or 0
+                    local height = db.essentialCDHeight or 18
+                    castbar:SetHeight(height)
+                    
+                    -- Fix icon size
+                    if castbar.Icon then
+                        castbar.Icon:SetSize(height, height)
+                    end
+                    
+                    castbar:SetPoint(db.anchorPoint or "CENTER", essentialFrame, db.relativePoint or "CENTER", finalOffsetX, finalOffsetY)
+                end
+                
+                -- Update previous anchor tracker
+                db.previousAnchor = "EssentialCooldownViewer"
+            elseif db.anchorFrame == "EssentialCooldownViewer" then
+                -- EssentialCooldownViewer but Match Width disabled - use EssentialCD offsets
+                -- IMPORTANT: Use actual EssentialCooldownViewer frame, not pet override
+                local essentialFrame = _G["EssentialCooldownViewer"]
+                if not essentialFrame then
+                    return -- EssentialCooldownViewer not found
+                end
+                
+                local finalOffsetX = db.essentialCDOffsetX or 0
+                local finalOffsetY = db.essentialCDOffsetY or 0
+                local height = db.essentialCDHeight or 18
+                castbar:SetHeight(height)
+                
+                -- Fix icon size
+                if castbar.Icon then
+                    castbar.Icon:SetSize(height, height)
+                end
+                
+                castbar:SetPoint(db.anchorPoint or "CENTER", essentialFrame, db.relativePoint or "CENTER", finalOffsetX, finalOffsetY)
+                
+                -- Update previous anchor tracker
+                db.previousAnchor = "EssentialCooldownViewer"
+            else
+                -- NORMAL MODE: Set position
+                local finalOffsetX = db.offsetX or 0
+                local finalOffsetY = db.offsetY or 0
+                
+                castbar:SetPoint(db.anchorPoint or "CENTER", anchorFrame, db.relativePoint or "CENTER", finalOffsetX, finalOffsetY)
+                
+                -- Only apply custom width/height for unitframe anchors (HealthBar/PowerBar)
+                if targetAnchorFrameName and (targetAnchorFrameName:match("HealthBar") or targetAnchorFrameName:match("PowerBar")) then
+                    -- If not set yet, read from ElvUI database
+                    if not db.normalFrameWidth or not db.normalFrameHeight then
+                        if E and E.db and E.db.unitframe and E.db.unitframe.units then
+                            local unitKey = castbarType
+                            if E.db.unitframe.units[unitKey] and E.db.unitframe.units[unitKey].castbar then
+                                if not db.normalFrameWidth then
+                                    db.normalFrameWidth = E.db.unitframe.units[unitKey].castbar.width or 270
+                                end
+                                if not db.normalFrameHeight then
+                                    db.normalFrameHeight = E.db.unitframe.units[unitKey].castbar.height or 18
+                                end
+                            end
+                        end
+                    end
+                    
+                    -- User-defined width and height for unitframe anchors
+                    local customWidth = db.normalFrameWidth or 270
+                    local customHeight = db.normalFrameHeight or 18
+                    
+                    castbar:SetWidth(customWidth)
+                    castbar:SetHeight(customHeight)
+                end
+                -- For non-unitframe anchors (UIParent, etc), just set position, don't touch size
+                
+                -- Update tracker
+                if db.previousAnchor == "EssentialCooldownViewer" then
+                    db.previousAnchor = db.anchorFrame
+                elseif db.previousAnchor ~= db.anchorFrame then
+                    db.previousAnchor = db.anchorFrame
+                end
+                -- Note: Icon size is managed by ElvUI, we don't touch it
+            end
             
             -- Clear the flag after a brief delay
             C_Timer.After(0.01, function()
@@ -168,7 +280,6 @@ else
         -- Silently ignore forbidden errors
         if not success and err and not err:find("forbidden") then
             -- Only print non-forbidden errors
-            print("|cffff0000Castbar Anchors Error:|r", err)
         end
     end
 
@@ -284,7 +395,6 @@ else
 
     function CA:SetAnchorFrame(frameName)
         local frame = _G[frameName]
-        if not frame then print("|cffff0000ElvUI Castbar Anchors:|r Frame not found!") return end
         
         local db = self:GetActiveDB()
         db.anchorFrame = frameName

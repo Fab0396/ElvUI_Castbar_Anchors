@@ -10,7 +10,7 @@ local MyMod = E:NewModule('ElvUI_Castbar_Anchors', 'AceEvent-3.0', 'AceHook-3.0'
 local EP = LibStub("LibElvUIPlugin-1.0")
 local LibDBIcon = LibStub("LibDBIcon-1.0")
 
-MyMod.version = "2.3.7"
+MyMod.version = "2.8.7-debug"
 
 local CASTBAR_FRAMES = {
     player = "ElvUF_Player_CastBar",
@@ -22,9 +22,9 @@ local CASTBAR_FRAMES = {
 P['ElvUI_Castbar_Anchors'] = {
     ['minimap'] = { ['hide'] = false, ['minimapPos'] = 220 },
     ['castbars'] = {
-        ['player'] = { ['enabled'] = false, ['anchorFrame'] = nil, ['anchorPoint'] = "CENTER", ['relativePoint'] = "CENTER", ['offsetX'] = 0, ['offsetY'] = 0, ['updateRate'] = 0.05, ['usePetFrame'] = false, ['petAnchorFrame'] = nil },
-        ['target'] = { ['enabled'] = false, ['anchorFrame'] = nil, ['anchorPoint'] = "CENTER", ['relativePoint'] = "CENTER", ['offsetX'] = 0, ['offsetY'] = 0, ['updateRate'] = 0.05 },
-        ['focus'] = { ['enabled'] = false, ['anchorFrame'] = nil, ['anchorPoint'] = "CENTER", ['relativePoint'] = "CENTER", ['offsetX'] = 0, ['offsetY'] = 0, ['updateRate'] = 0.05 },
+        ['player'] = { ['enabled'] = false, ['anchorFrame'] = nil, ['anchorPoint'] = "CENTER", ['relativePoint'] = "CENTER", ['offsetX'] = 0, ['offsetY'] = 0, ['updateRate'] = 0.05, ['usePetFrame'] = false, ['petAnchorFrame'] = nil, ['normalFrameWidth'] = nil, ['normalFrameHeight'] = nil },
+        ['target'] = { ['enabled'] = false, ['anchorFrame'] = nil, ['anchorPoint'] = "CENTER", ['relativePoint'] = "CENTER", ['offsetX'] = 0, ['offsetY'] = 0, ['updateRate'] = 0.05, ['normalFrameWidth'] = nil, ['normalFrameHeight'] = nil },
+        ['focus'] = { ['enabled'] = false, ['anchorFrame'] = nil, ['anchorPoint'] = "CENTER", ['relativePoint'] = "CENTER", ['offsetX'] = 0, ['offsetY'] = 0, ['updateRate'] = 0.05, ['normalFrameWidth'] = nil, ['normalFrameHeight'] = nil },
     },
 }
 
@@ -45,7 +45,8 @@ function MyMod:UpdateCastbarPosition(castbarType)
     -- Wrap everything in pcall to catch forbidden errors
     local success, err = pcall(function()
         local targetAnchorFrameName = db.anchorFrame
-        if castbarType == "player" and db.usePetFrame and db.petAnchorFrame then
+        -- Skip pet override if EssentialCooldownViewer is selected
+        if castbarType == "player" and db.usePetFrame and db.petAnchorFrame and db.anchorFrame ~= "EssentialCooldownViewer" then
             if UnitExists("pet") then
                 local petFrame = _G[db.petAnchorFrame]
                 if petFrame and petFrame:IsShown() then
@@ -70,7 +71,119 @@ function MyMod:UpdateCastbarPosition(castbarType)
         
         -- FORCE re-anchor by clearing ALL points first
         castbar:ClearAllPoints()
-        castbar:SetPoint(db.anchorPoint or "CENTER", anchorFrame, db.relativePoint or "CENTER", db.offsetX or 0, db.offsetY or 0)
+        
+        -- Determine the ACTUAL frame we're anchoring to
+        local actualAnchorFrameName = targetAnchorFrameName
+        
+        -- CRITICAL: Check what USER selected (db.anchorFrame), not the actual frame (which may be pet override)
+        if db.anchorFrame == "EssentialCooldownViewer" and db.matchWidth then
+            -- EssentialCooldownViewer mode with width matching enabled
+            -- IMPORTANT: Use actual EssentialCooldownViewer frame, not pet override
+            local essentialFrame = _G["EssentialCooldownViewer"]
+            if not essentialFrame then
+                return -- EssentialCooldownViewer not found
+            end
+            
+            local anchorWidth = essentialFrame:GetWidth()
+            if anchorWidth and anchorWidth > 0 then
+                -- Apply border adjustment to width
+                local borderAdjust = (db.borderAdjust or 0) * 2
+                local finalWidth = anchorWidth - borderAdjust
+                castbar:SetWidth(finalWidth)
+                
+                -- Set height for EssentialCooldownViewer
+                local height = db.essentialCDHeight or 18
+                castbar:SetHeight(height)
+                
+                -- Fix icon size to match height (square icon)
+                if castbar.Icon then
+                    castbar.Icon:SetSize(height, height)
+                end
+                
+                -- Use EssentialCooldownViewer-specific offsets with border centering
+                local finalOffsetX = (db.essentialCDOffsetX or 0) + (db.borderAdjust or 0)
+                local finalOffsetY = db.essentialCDOffsetY or 0
+                
+                castbar:SetPoint(db.anchorPoint or "CENTER", essentialFrame, db.relativePoint or "CENTER", finalOffsetX, finalOffsetY)
+            else
+                -- Fallback - use EssentialCD offsets without width matching
+                local finalOffsetX = db.essentialCDOffsetX or 0
+                local finalOffsetY = db.essentialCDOffsetY or 0
+                local height = db.essentialCDHeight or 18
+                castbar:SetHeight(height)
+                
+                -- Fix icon size
+                if castbar.Icon then
+                    castbar.Icon:SetSize(height, height)
+                end
+                
+                castbar:SetPoint(db.anchorPoint or "CENTER", essentialFrame, db.relativePoint or "CENTER", finalOffsetX, finalOffsetY)
+            end
+            
+            -- Update previous anchor tracker
+            db.previousAnchor = "EssentialCooldownViewer"
+        elseif db.anchorFrame == "EssentialCooldownViewer" then
+            -- EssentialCooldownViewer but Match Width disabled - use EssentialCD offsets
+            -- IMPORTANT: Use actual EssentialCooldownViewer frame, not pet override
+            local essentialFrame = _G["EssentialCooldownViewer"]
+            if not essentialFrame then
+                return -- EssentialCooldownViewer not found
+            end
+            
+            local finalOffsetX = db.essentialCDOffsetX or 0
+            local finalOffsetY = db.essentialCDOffsetY or 0
+            local height = db.essentialCDHeight or 18
+            castbar:SetHeight(height)
+            
+            -- Fix icon size
+            if castbar.Icon then
+                castbar.Icon:SetSize(height, height)
+            end
+            
+            castbar:SetPoint(db.anchorPoint or "CENTER", essentialFrame, db.relativePoint or "CENTER", finalOffsetX, finalOffsetY)
+            
+            -- Update previous anchor tracker
+            db.previousAnchor = "EssentialCooldownViewer"
+        else
+            -- NORMAL MODE: Set position
+            local finalOffsetX = db.offsetX or 0
+            local finalOffsetY = db.offsetY or 0
+            
+            castbar:SetPoint(db.anchorPoint or "CENTER", anchorFrame, db.relativePoint or "CENTER", finalOffsetX, finalOffsetY)
+            
+            -- Only apply custom width/height for unitframe anchors (HealthBar/PowerBar)
+            if actualAnchorFrameName and (actualAnchorFrameName:match("HealthBar") or actualAnchorFrameName:match("PowerBar")) then
+                -- If not set yet, read from ElvUI database
+                if not db.normalFrameWidth or not db.normalFrameHeight then
+                    local unitKey = castbarType
+                    if E.db.unitframe and E.db.unitframe.units and E.db.unitframe.units[unitKey] and E.db.unitframe.units[unitKey].castbar then
+                        if not db.normalFrameWidth then
+                            db.normalFrameWidth = E.db.unitframe.units[unitKey].castbar.width or 270
+                        end
+                        if not db.normalFrameHeight then
+                            db.normalFrameHeight = E.db.unitframe.units[unitKey].castbar.height or 18
+                        end
+                    end
+                end
+                
+                -- User-defined width and height for unitframe anchors
+                local customWidth = db.normalFrameWidth or 270
+                local customHeight = db.normalFrameHeight or 18
+                
+                castbar:SetWidth(customWidth)
+                castbar:SetHeight(customHeight)
+            end
+            -- For non-unitframe anchors (UIParent, etc), just set position, don't touch size
+            
+            -- Update tracker
+            if db.previousAnchor == "EssentialCooldownViewer" then
+                db.previousAnchor = db.anchorFrame
+            elseif db.previousAnchor ~= db.anchorFrame then
+                db.previousAnchor = db.anchorFrame
+            end
+            -- Note: Icon size is managed by ElvUI, we don't touch it
+        end
+        
         
         -- Clear the flag after a brief delay
         C_Timer.After(0.01, function()
@@ -83,7 +196,6 @@ function MyMod:UpdateCastbarPosition(castbarType)
     -- Silently ignore forbidden errors
     if not success and err and not err:find("forbidden") then
         -- Only print non-forbidden errors
-        print("|cffff0000Castbar Anchors Error:|r", err)
     end
 end
 
@@ -180,7 +292,8 @@ function MyMod:HookFrameUpdates(castbarType)
     end
     
     -- Also hook pet frame if using pet override (with combat protection)
-    if castbarType == "player" and db.usePetFrame and db.petAnchorFrame then
+    -- Skip if EssentialCooldownViewer is selected to avoid interference
+    if castbarType == "player" and db.usePetFrame and db.petAnchorFrame and db.anchorFrame ~= "EssentialCooldownViewer" then
         local petFrame = _G[db.petAnchorFrame]
         if petFrame and not self.hooked["pet_"..castbarType] then
             self.hooked["pet_"..castbarType] = true
@@ -211,7 +324,6 @@ end
 
 function MyMod:SetAnchorFrame(castbarType, frameName)
     local frame = _G[frameName]
-    if not frame then print("|cffff0000ElvUI Castbar Anchors:|r Frame not found!") return end
     
     local db = E.db.ElvUI_Castbar_Anchors.castbars[castbarType]
     db.anchorFrame = frameName
@@ -297,21 +409,19 @@ function MyMod:InsertOptions()
                             values = function()
                                 local suggestions = {}
                                 if castbarType == "player" then
-                                    suggestions["ElvUF_Player"] = "Player Frame"
                                     suggestions["ElvUF_Player_HealthBar"] = "Player Health Bar"
                                     suggestions["ElvUF_Player_PowerBar"] = "Player Power Bar"
-                                    suggestions["ElvUF_Pet"] = "Pet Frame"
                                     suggestions["ElvUF_Pet_HealthBar"] = "Pet Health Bar"
                                     suggestions["ElvUF_Pet_PowerBar"] = "Pet Power Bar"
                                 elseif castbarType == "target" then
-                                    suggestions["ElvUF_Target"] = "Target Frame"
                                     suggestions["ElvUF_Target_HealthBar"] = "Target Health Bar"
                                     suggestions["ElvUF_Target_PowerBar"] = "Target Power Bar"
                                 elseif castbarType == "focus" then
-                                    suggestions["ElvUF_Focus"] = "Focus Frame"
                                     suggestions["ElvUF_Focus_HealthBar"] = "Focus Health Bar"
                                     suggestions["ElvUF_Focus_PowerBar"] = "Focus Power Bar"
                                 end
+                                -- Add common addons for all types
+                                suggestions["EssentialCooldownViewer"] = "Essential Cooldown Viewer"
                                 suggestions["UIParent"] = "Screen Center"
                                 return suggestions
                             end,
@@ -337,6 +447,124 @@ function MyMod:InsertOptions()
                         relativePoint = { order = 7, type = "select", name = "Relative Point", values = anchorPoints },
                         offsetX = { order = 8, type = "range", name = "X Offset", min = -500, max = 500, step = 1 },
                         offsetY = { order = 9, type = "range", name = "Y Offset", min = -500, max = 500, step = 1 },
+                        normalFrameWidth = {
+                            order = 9.1, type = "range", name = "Castbar Width (Unitframes only)",
+                            desc = "Width of castbar when anchored to unitframe Health/Power bars (reads from ElvUI on first load)",
+                            min = 50, max = 500, step = 1,
+                            disabled = function() 
+                                if not db.enabled then return true end
+                                if not db.anchorFrame then return true end
+                                -- Only enable for Health/Power bars
+                                return not (db.anchorFrame:match("HealthBar") or db.anchorFrame:match("PowerBar"))
+                            end,
+                            get = function() 
+                                -- Auto-read from ElvUI if not set
+                                if not db.normalFrameWidth then
+                                    local unitKey = castbarType
+                                    if E.db.unitframe and E.db.unitframe.units and E.db.unitframe.units[unitKey] and E.db.unitframe.units[unitKey].castbar then
+                                        db.normalFrameWidth = E.db.unitframe.units[unitKey].castbar.width or 270
+                                    end
+                                end
+                                return db.normalFrameWidth or 270
+                            end,
+                            set = function(info, value)
+                                db.normalFrameWidth = value
+                                if db.enabled and db.anchorFrame then
+                                    MyMod:UpdateCastbarPosition(castbarType)
+                                end
+                            end,
+                        },
+                        normalFrameHeight = {
+                            order = 9.2, type = "range", name = "Castbar Height (Unitframes only)",
+                            desc = "Height of castbar when anchored to unitframe Health/Power bars (reads from ElvUI on first load)",
+                            min = 5, max = 100, step = 1,
+                            disabled = function() 
+                                if not db.enabled then return true end
+                                if not db.anchorFrame then return true end
+                                -- Only enable for Health/Power bars
+                                return not (db.anchorFrame:match("HealthBar") or db.anchorFrame:match("PowerBar"))
+                            end,
+                            get = function() 
+                                -- Auto-read from ElvUI if not set
+                                if not db.normalFrameHeight then
+                                    local unitKey = castbarType
+                                    if E.db.unitframe and E.db.unitframe.units and E.db.unitframe.units[unitKey] and E.db.unitframe.units[unitKey].castbar then
+                                        db.normalFrameHeight = E.db.unitframe.units[unitKey].castbar.height or 18
+                                    end
+                                end
+                                return db.normalFrameHeight or 18
+                            end,
+                            set = function(info, value)
+                                db.normalFrameHeight = value
+                                if db.enabled and db.anchorFrame then
+                                    MyMod:UpdateCastbarPosition(castbarType)
+                                end
+                            end,
+                        },
+                        spacer3 = { order = 10, type = "description", name = " " },
+                        matchWidth = {
+                            order = 11, type = "toggle", name = "Match Anchor Width",
+                            desc = "Automatically resize castbar to match the anchor frame's width (EssentialCooldownViewer only)",
+                            disabled = function() return not db.enabled or db.anchorFrame ~= "EssentialCooldownViewer" end,
+                            set = function(info, value)
+                                db.matchWidth = value
+                                if db.enabled and db.anchorFrame then
+                                    MyMod:UpdateCastbarPosition(castbarType)
+                                end
+                            end,
+                        },
+                        borderAdjust = {
+                            order = 12, type = "range", name = "Border Adjustment",
+                            desc = "Reduce width by this amount to account for borders (2px borders = set to 2). Automatically centers the castbar - no need to adjust X offset!",
+                            min = 0, max = 10, step = 1,
+                            disabled = function() return not db.enabled or db.anchorFrame ~= "EssentialCooldownViewer" or not db.matchWidth end,
+                            set = function(info, value)
+                                db.borderAdjust = value
+                                if db.enabled and db.anchorFrame then
+                                    MyMod:UpdateCastbarPosition(castbarType)
+                                end
+                            end,
+                        },
+                        spacer4 = { order = 13, type = "description", name = " " },
+                        essentialCDOffsetX = {
+                            order = 14, type = "range", name = "EssentialCD X Offset",
+                            desc = "X offset specifically for EssentialCooldownViewer (separate from normal offset)",
+                            min = -500, max = 500, step = 1,
+                            disabled = function() return not db.enabled or db.anchorFrame ~= "EssentialCooldownViewer" end,
+                            get = function() return db.essentialCDOffsetX or 0 end,
+                            set = function(info, value)
+                                db.essentialCDOffsetX = value
+                                if db.enabled and db.anchorFrame then
+                                    MyMod:UpdateCastbarPosition(castbarType)
+                                end
+                            end,
+                        },
+                        essentialCDOffsetY = {
+                            order = 15, type = "range", name = "EssentialCD Y Offset",
+                            desc = "Y offset specifically for EssentialCooldownViewer (separate from normal offset)",
+                            min = -500, max = 500, step = 1,
+                            disabled = function() return not db.enabled or db.anchorFrame ~= "EssentialCooldownViewer" end,
+                            get = function() return db.essentialCDOffsetY or 0 end,
+                            set = function(info, value)
+                                db.essentialCDOffsetY = value
+                                if db.enabled and db.anchorFrame then
+                                    MyMod:UpdateCastbarPosition(castbarType)
+                                end
+                            end,
+                        },
+                        essentialCDHeight = {
+                            order = 16, type = "range", name = "EssentialCD Height",
+                            desc = "Height of castbar when anchored to EssentialCooldownViewer (separate from ElvUI settings)",
+                            min = 5, max = 100, step = 1,
+                            disabled = function() return not db.enabled or db.anchorFrame ~= "EssentialCooldownViewer" end,
+                            get = function() return db.essentialCDHeight or 18 end,
+                            set = function(info, value)
+                                db.essentialCDHeight = value
+                                if db.enabled and db.anchorFrame then
+                                    MyMod:UpdateCastbarPosition(castbarType)
+                                end
+                            end,
+                        },
                     },
                 },
                 spacer2 = { order = 5, type = "description", name = "" },
@@ -376,7 +604,6 @@ function MyMod:InsertOptions()
                         desc = "Common pet frames",
                         disabled = function() return not db.usePetFrame end,
                         values = {
-                            ["ElvUF_Pet"] = "Pet Frame",
                             ["ElvUF_Pet_HealthBar"] = "Pet Health Bar",
                             ["ElvUF_Pet_PowerBar"] = "Pet Power Bar",
                         },
@@ -538,7 +765,6 @@ function MyMod:Initialize()
         end
     end)
     
-    print("|cff00d4ffElvUI Castbar Anchors|r v" .. self.version .. " loaded. |cffffd700/ec|r to configure.")
 end
 
 function MyMod:PLAYER_ENTERING_WORLD()
