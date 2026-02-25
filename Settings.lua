@@ -795,7 +795,7 @@ function CA:PopulateTabContent(content, castbarType)
     content.borderAdjustSlider = CreateFrame("Slider", "CA_BorderAdjust_"..castbarType, content, "OptionsSliderTemplate")
     content.borderAdjustSlider:SetPoint("LEFT", content.borderAdjustLabel, "RIGHT", 15, 0)
     content.borderAdjustSlider:SetMinMaxValues(0, 50)
-    content.borderAdjustSlider:SetValueStep(1)
+    content.borderAdjustSlider:SetValueStep(0.5)
     content.borderAdjustSlider:SetObeyStepOnDrag(true)
     content.borderAdjustSlider:SetWidth(180)
     content.borderAdjustSlider.castbarType = castbarType
