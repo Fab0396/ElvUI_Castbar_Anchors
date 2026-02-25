@@ -516,7 +516,7 @@ function MyMod:InsertOptions()
                         borderAdjust = {
                             order = 12, type = "range", name = "Border Adjustment",
                             desc = "Reduce width by this amount to account for borders (2px borders = set to 2). Automatically centers the castbar - no need to adjust X offset!",
-                            min = 0, max = 10, step = 1,
+                            min = 0, max = 50, step = 0.5,
                             disabled = function() return not db.enabled or db.anchorFrame ~= "EssentialCooldownViewer" or not db.matchWidth end,
                             set = function(info, value)
                                 db.borderAdjust = value
