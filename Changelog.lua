@@ -27,7 +27,7 @@ local function SetupChangelog()
         f.title = f:CreateFontString(nil, "OVERLAY")
         f.title:FontTemplate(nil, 20, "OUTLINE")
         f.title:SetPoint("TOP", 0, -10)
-        f.title:SetText("|cff00d4ffElvUI|r Castbar Anchors - Changelog")
+        f.title:SetText("|cff00d4ffElvUI|r Castbar Anchors - v2.15.0")
 
         -- Content Scroll Frame
         local sf = CreateFrame("ScrollFrame", "ElvUI_Castbar_Anchors_ChangelogScrollFrame", f, "UIPanelScrollFrameTemplate")
@@ -61,105 +61,140 @@ local function SetupChangelog()
         f.text:SetJustifyH("LEFT")
         f.text:SetWidth(430)
         f.text:SetText([[
-|cffFFD100v2.9.0 - FINALLY IN THE RIGHT FILE!|r
-|cff00d4ffTHE REAL FIX!|r
+|cffFFD100v2.15.0 - ESSENTIAL CD ICON FIX!|r
+|cff00d4ffCRITICAL FIX|r
 
-|cffFF0000The Problem (v2.8.0-2.8.8):|r
-I was adding sliders to Settings.lua, which is
-ONLY for standalone mode!
+Fixed the icon sticking out when using
+EssentialCooldownViewer with Match Anchor Width!
 
-You're using ElvUI Plugin Mode, so Settings.lua
-never loads! That's why there was no debug output
-and no sliders!
+|cffFF0000The Problem:|r
+When anchored to EssentialCooldownViewer with
+"Match Anchor Width" enabled:
+- Castbar width is LOCKED to match EssentialCD
+- Can't adjust width manually
+- Icon adds extra width
+- Icon sticks out horizontally! ❌
 
-|cff00FF00The Solution (v2.9.0):|r
-Added the sliders to Core_Plugin.lua where the
-plugin mode settings actually live!
+User had to adjust X offset to compensate,
+which defeats the purpose of centered anchoring.
 
-|cffFFFF00NEW: Width & Height Sliders!|r
-Now in the CORRECT file for plugin mode:
+|cff00FF00The Solution:|r
+NEW: "Adjust Width for Icon (EssentialCD)"!
 
-✅ "Castbar Width (Unitframes only)" slider
-   - Min: 50, Max: 500
-   - Only enabled when anchored to Health/Power bars
-   - Auto-reads from ElvUI on first load
-   - Shows your actual ElvUI width (e.g., 274)
+This checkbox works exactly like the unitframe
+version, but for EssentialCooldownViewer:
+- Automatically subtracts icon width from castbar
+- Keeps total width = EssentialCD width
+- Icon fits perfectly! ✅
 
-✅ "Castbar Height (Unitframes only)" slider
-   - Min: 5, Max: 100
-   - Only enabled when anchored to Health/Power bars
-   - Auto-reads from ElvUI on first load
-   - Shows your actual ElvUI height (e.g., 36)
-
-|cff00d4ffWhere To Find Them:|r
+|cffFFFF00Where To Find It:|r
 ElvUI > Plugins > Castbar Anchors > Player
 
-Under "Anchor Settings" group:
-- Anchor Point
-- Relative Point
-- X Offset
-- Y Offset
-- |cff00FF00Castbar Width (Unitframes only)|r ← NEW!
-- |cff00FF00Castbar Height (Unitframes only)|r ← NEW!
-- Match Anchor Width
-- (EssentialCD settings...)
+When anchored to EssentialCooldownViewer:
 
-|cffFFFF00How They Work:|r
-Anchored to "Player Power Bar":
-✅ Width slider ENABLED (bright)
-✅ Height slider ENABLED (bright)
-✅ Shows values from ElvUI (274 × 36)
+EssentialCooldownViewer Settings:
+- Match Anchor Width: ✅
+- EssentialCD Height: 27
+- |cff00FF00Adjust Width for Icon: ✅|r ← NEW!
+- Icon Size (EssentialCD): 31
 
-Anchored to "Essential Cooldown Viewer":
-❌ Width slider DISABLED (greyed out)
-❌ Height slider DISABLED (greyed out)
-✅ EssentialCD sliders enabled instead
+|cffFFFF00How It Works:|r
+Before (icon sticks out):
+- EssentialCD width: 300px
+- Match Anchor Width: ✅
+- Castbar width: 300px
+- Icon width: 31px
+- Total width: 331px ❌ STICKS OUT!
 
-Anchored to "Screen Center":
-❌ Width slider DISABLED (greyed out)
-❌ Height slider DISABLED (greyed out)
+After (perfect fit):
+- EssentialCD width: 300px
+- Match Anchor Width: ✅
+- Adjust Width for Icon: ✅
+- Castbar width: 269px (300 - 31)
+- Icon width: 31px
+- Total width: 300px ✅ PERFECT!
 
-|cffFFFF00Why It Works Now:|r
-Before: Added to Settings.lua (standalone mode)
-→ Plugin mode never loaded Settings.lua
-→ Sliders never appeared ❌
+|cff00d4ffExample Setup:|r
+Anchored to EssentialCooldownViewer:
 
-After: Added to Core_Plugin.lua (plugin mode)
-→ Plugin mode loads Core_Plugin.lua
-→ Sliders appear in ElvUI settings! ✅
+Settings:
+- Quick Select: EssentialCooldownViewer
+- Match Anchor Width: ✅ Checked
+- EssentialCD Height: 27
+- Adjust Width for Icon (EssentialCD): ✅ Checked
+- Icon Size (EssentialCD): 31
 
-|cff00d4ffHow To Use:|r
-1. Open ElvUI > Plugins > Castbar Anchors
-2. Click "Player" tab
-3. Enable the player castbar
-4. Select "Player Power Bar" from Quick Select
-5. Scroll down to "Anchor Settings"
-6. YOU SHOULD SEE:
-   - "Castbar Width (Unitframes only)" slider
-   - "Castbar Height (Unitframes only)" slider
-7. Adjust to match your setup!
+Result:
+- Castbar + icon = EssentialCD width
+- No horizontal overflow! ✅
+- Perfectly centered! ✅
+- No need to adjust X offset! ✅
 
-The sliders will:
-- Start with your current ElvUI values
-- Only work for Health/Power bar anchors
-- Grey out for other anchor types
-- Update the castbar size in real-time
+|cffFFFF00When To Use It:|r
+Enable "Adjust Width for Icon (EssentialCD)" when:
+✅ Anchored to EssentialCooldownViewer
+✅ Match Anchor Width is enabled
+✅ Icon is visible (ElvUI castbar icon enabled)
+✅ Icon sticks out horizontally
 
-|cffFFFF00Technical Note:|r
-ElvUI Plugin Mode vs Standalone Mode:
-- Plugin Mode: Uses Core_Plugin.lua (InsertOptions)
-- Standalone Mode: Uses Settings.lua (ShowSettingsUI)
+Leave it DISABLED when:
+❌ Not using EssentialCooldownViewer
+❌ Match Anchor Width is disabled
+❌ Icon is hidden
+❌ Icon already fits
 
-You're in Plugin Mode, so the sliders needed to
-be in Core_Plugin.lua, not Settings.lua!
+|cffFFFF00Technical Details:|r
+The checkbox is:
+- Order: 16.5 (between Height and Icon Size)
+- Only enabled for EssentialCooldownViewer anchor
+- Database field: essentialCDAdjustForIcon
+
+The width calculation:
+```
+finalWidth = essentialCDWidth - borderAdjust
+
+if adjustForIcon and icon visible then
+    finalWidth = finalWidth - iconWidth
+end
+
+castbar:SetWidth(finalWidth)
+```
+
+Works in BOTH modes:
+✅ Plugin mode (Core_Plugin.lua)
+✅ Standalone mode (Core.lua)
+
+|cff00d4ffDatabase Changes:|r
+New field: essentialCDAdjustForIcon = false
+
+Default: Disabled (false)
+You need to enable it manually if icon sticks out.
+
+|cffFFFF00UI Organization:|r
+When anchored to EssentialCooldownViewer:
+- ✅ Match Anchor Width - BRIGHT
+- ✅ EssentialCD X/Y Offset - BRIGHT
+- ✅ EssentialCD Height - BRIGHT
+- ✅ |cff00FF00Adjust Width for Icon|r - BRIGHT
+- ✅ Icon Size (EssentialCD) - BRIGHT
+- ❌ Unitframe settings - GREYED OUT
+
+Perfect organization! Each anchor type shows
+only its relevant settings.
 
 ---
 
-|cffFFD100v2.8.0-2.8.8 - Wrong File!|r
-- Added sliders to Settings.lua (standalone)
-- You're using plugin mode
-- Settings.lua never loaded
-- That's why nothing worked!
+|cffFFD100v2.14.0 - Previous Update|r
+- Separate icon size sliders (Unitframes/Essential)
+- Icon border adjustment for unitframes
+- Better UI organization by anchor type
+- Icon resize working for both modes! ✅
+
+---
+
+No more icon overflow on EssentialCooldownViewer!
+Enable "Adjust Width for Icon (EssentialCD)" and
+enjoy perfectly fitted castbars! 🎉
 ]])
 
         content:SetHeight(f.text:GetStringHeight() + 20)

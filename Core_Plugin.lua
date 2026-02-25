@@ -10,7 +10,7 @@ local MyMod = E:NewModule('ElvUI_Castbar_Anchors', 'AceEvent-3.0', 'AceHook-3.0'
 local EP = LibStub("LibElvUIPlugin-1.0")
 local LibDBIcon = LibStub("LibDBIcon-1.0")
 
-MyMod.version = "2.8.7-debug"
+MyMod.version = "2.15.0"
 
 local CASTBAR_FRAMES = {
     player = "ElvUF_Player_CastBar",
@@ -22,9 +22,9 @@ local CASTBAR_FRAMES = {
 P['ElvUI_Castbar_Anchors'] = {
     ['minimap'] = { ['hide'] = false, ['minimapPos'] = 220 },
     ['castbars'] = {
-        ['player'] = { ['enabled'] = false, ['anchorFrame'] = nil, ['anchorPoint'] = "CENTER", ['relativePoint'] = "CENTER", ['offsetX'] = 0, ['offsetY'] = 0, ['updateRate'] = 0.05, ['usePetFrame'] = false, ['petAnchorFrame'] = nil, ['normalFrameWidth'] = nil, ['normalFrameHeight'] = nil },
-        ['target'] = { ['enabled'] = false, ['anchorFrame'] = nil, ['anchorPoint'] = "CENTER", ['relativePoint'] = "CENTER", ['offsetX'] = 0, ['offsetY'] = 0, ['updateRate'] = 0.05, ['normalFrameWidth'] = nil, ['normalFrameHeight'] = nil },
-        ['focus'] = { ['enabled'] = false, ['anchorFrame'] = nil, ['anchorPoint'] = "CENTER", ['relativePoint'] = "CENTER", ['offsetX'] = 0, ['offsetY'] = 0, ['updateRate'] = 0.05, ['normalFrameWidth'] = nil, ['normalFrameHeight'] = nil },
+        ['player'] = { ['enabled'] = false, ['anchorFrame'] = nil, ['anchorPoint'] = "CENTER", ['relativePoint'] = "CENTER", ['offsetX'] = 0, ['offsetY'] = 0, ['updateRate'] = 0.05, ['usePetFrame'] = false, ['petAnchorFrame'] = nil, ['normalFrameWidth'] = nil, ['normalFrameHeight'] = nil, ['adjustForIcon'] = false, ['normalFrameIconSize'] = 0, ['iconBorderAdjust'] = 0, ['essentialCDIconSize'] = 0, ['essentialCDAdjustForIcon'] = false },
+        ['target'] = { ['enabled'] = false, ['anchorFrame'] = nil, ['anchorPoint'] = "CENTER", ['relativePoint'] = "CENTER", ['offsetX'] = 0, ['offsetY'] = 0, ['updateRate'] = 0.05, ['normalFrameWidth'] = nil, ['normalFrameHeight'] = nil, ['adjustForIcon'] = false, ['normalFrameIconSize'] = 0, ['iconBorderAdjust'] = 0, ['essentialCDIconSize'] = 0, ['essentialCDAdjustForIcon'] = false },
+        ['focus'] = { ['enabled'] = false, ['anchorFrame'] = nil, ['anchorPoint'] = "CENTER", ['relativePoint'] = "CENTER", ['offsetX'] = 0, ['offsetY'] = 0, ['updateRate'] = 0.05, ['normalFrameWidth'] = nil, ['normalFrameHeight'] = nil, ['adjustForIcon'] = false, ['normalFrameIconSize'] = 0, ['iconBorderAdjust'] = 0, ['essentialCDIconSize'] = 0, ['essentialCDAdjustForIcon'] = false },
     },
 }
 
@@ -89,6 +89,15 @@ function MyMod:UpdateCastbarPosition(castbarType)
                 -- Apply border adjustment to width
                 local borderAdjust = (db.borderAdjust or 0) * 2
                 local finalWidth = anchorWidth - borderAdjust
+                
+                -- Adjust width for icon if enabled
+                if db.essentialCDAdjustForIcon and castbar.Icon and castbar.Icon:IsShown() then
+                    local iconWidth = castbar.Icon:GetWidth() or 0
+                    if iconWidth > 0 then
+                        finalWidth = finalWidth - iconWidth
+                    end
+                end
+                
                 castbar:SetWidth(finalWidth)
                 
                 -- Set height for EssentialCooldownViewer
@@ -120,6 +129,26 @@ function MyMod:UpdateCastbarPosition(castbarType)
                 castbar:SetPoint(db.anchorPoint or "CENTER", essentialFrame, db.relativePoint or "CENTER", finalOffsetX, finalOffsetY)
             end
             
+            -- Force icon size on EVERY update (ElvUI resets it constantly)
+            if castbar.Icon then
+                local iconSize = db.essentialCDIconSize
+                if not iconSize or iconSize == 0 then
+                    iconSize = height  -- Default to match castbar height
+                end
+                
+                if iconSize > 0 then
+                    local iconType = castbar.Icon:GetObjectType()
+                    local parent = castbar.Icon:GetParent()
+                    
+                    if iconType == "Texture" and parent and parent.SetSize then
+                        -- Resize the PARENT frame
+                        parent:SetSize(iconSize, iconSize)
+                    elseif iconType ~= "Texture" then
+                        castbar.Icon:SetSize(iconSize, iconSize)
+                    end
+                end
+            end
+            
             -- Update previous anchor tracker
             db.previousAnchor = "EssentialCooldownViewer"
         elseif db.anchorFrame == "EssentialCooldownViewer" then
@@ -135,9 +164,23 @@ function MyMod:UpdateCastbarPosition(castbarType)
             local height = db.essentialCDHeight or 18
             castbar:SetHeight(height)
             
-            -- Fix icon size
+            -- Force icon size on EVERY update
             if castbar.Icon then
-                castbar.Icon:SetSize(height, height)
+                local iconSize = db.essentialCDIconSize
+                if not iconSize or iconSize == 0 then
+                    iconSize = height  -- Default to match castbar height
+                end
+                
+                if iconSize > 0 then
+                    local iconType = castbar.Icon:GetObjectType()
+                    local parent = castbar.Icon:GetParent()
+                    
+                    if iconType == "Texture" and parent and parent.SetSize then
+                        parent:SetSize(iconSize, iconSize)
+                    elseif iconType ~= "Texture" then
+                        castbar.Icon:SetSize(iconSize, iconSize)
+                    end
+                end
             end
             
             castbar:SetPoint(db.anchorPoint or "CENTER", essentialFrame, db.relativePoint or "CENTER", finalOffsetX, finalOffsetY)
@@ -170,8 +213,33 @@ function MyMod:UpdateCastbarPosition(castbarType)
                 local customWidth = db.normalFrameWidth or 270
                 local customHeight = db.normalFrameHeight or 18
                 
+                -- Adjust width for icon if enabled
+                if db.adjustForIcon and castbar.Icon and castbar.Icon:IsShown() then
+                    local iconWidth = castbar.Icon:GetWidth() or 0
+                    if iconWidth > 0 then
+                        customWidth = customWidth - iconWidth
+                    end
+                end
+                
                 castbar:SetWidth(customWidth)
                 castbar:SetHeight(customHeight)
+                
+                -- Force icon size on EVERY update (ElvUI resets it constantly)
+                if castbar.Icon and db.normalFrameIconSize and db.normalFrameIconSize > 0 then
+                    local iconSize = db.normalFrameIconSize - (db.iconBorderAdjust or 0)
+                    if iconSize < 1 then iconSize = 1 end  -- Minimum 1px
+                    
+                    local iconType = castbar.Icon:GetObjectType()
+                    local parent = castbar.Icon:GetParent()
+                    
+                    if iconType == "Texture" and parent and parent.SetSize then
+                        -- Resize the PARENT frame (this is what works!)
+                        parent:SetSize(iconSize, iconSize)
+                    elseif iconType ~= "Texture" then
+                        -- Frames use SetSize directly
+                        castbar.Icon:SetSize(iconSize, iconSize)
+                    end
+                end
             end
             -- For non-unitframe anchors (UIParent, etc), just set position, don't touch size
             
@@ -501,6 +569,57 @@ function MyMod:InsertOptions()
                                 end
                             end,
                         },
+                        adjustForIcon = {
+                            order = 9.3, type = "toggle", name = "Adjust Width for Icon",
+                            desc = "Automatically subtract icon width from castbar width so the total width (castbar + icon) matches your setting. Enable this if your castbar icon sticks out.",
+                            disabled = function() 
+                                if not db.enabled then return true end
+                                if not db.anchorFrame then return true end
+                                -- Only enable for Health/Power bars
+                                return not (db.anchorFrame:match("HealthBar") or db.anchorFrame:match("PowerBar"))
+                            end,
+                            get = function() return db.adjustForIcon end,
+                            set = function(info, value)
+                                db.adjustForIcon = value
+                                if db.enabled and db.anchorFrame then
+                                    MyMod:UpdateCastbarPosition(castbarType)
+                                end
+                            end,
+                        },
+                        normalFrameIconSize = {
+                            order = 9.4, type = "range", name = "Icon Size (Unitframes only)",
+                            desc = "Resize the castbar icon when anchored to unitframes. Set to 0 to use ElvUI's default size.",
+                            min = 0, max = 100, step = 1,
+                            disabled = function() 
+                                if not db.enabled then return true end
+                                if not db.anchorFrame then return true end
+                                return not (db.anchorFrame:match("HealthBar") or db.anchorFrame:match("PowerBar"))
+                            end,
+                            get = function() return db.normalFrameIconSize or 0 end,
+                            set = function(info, value)
+                                db.normalFrameIconSize = value
+                                if db.enabled and db.anchorFrame then
+                                    MyMod:UpdateCastbarPosition(castbarType)
+                                end
+                            end,
+                        },
+                        iconBorderAdjust = {
+                            order = 9.5, type = "range", name = "Icon Border Adjustment",
+                            desc = "Reduce icon size by this amount to account for castbar borders (e.g., 2px borders = set to 2)",
+                            min = 0, max = 10, step = 1,
+                            disabled = function() 
+                                if not db.enabled then return true end
+                                if not db.anchorFrame then return true end
+                                return not (db.anchorFrame:match("HealthBar") or db.anchorFrame:match("PowerBar"))
+                            end,
+                            get = function() return db.iconBorderAdjust or 0 end,
+                            set = function(info, value)
+                                db.iconBorderAdjust = value
+                                if db.enabled and db.anchorFrame then
+                                    MyMod:UpdateCastbarPosition(castbarType)
+                                end
+                            end,
+                        },
                         spacer3 = { order = 10, type = "description", name = " " },
                         matchWidth = {
                             order = 11, type = "toggle", name = "Match Anchor Width",
@@ -560,6 +679,31 @@ function MyMod:InsertOptions()
                             get = function() return db.essentialCDHeight or 18 end,
                             set = function(info, value)
                                 db.essentialCDHeight = value
+                                if db.enabled and db.anchorFrame then
+                                    MyMod:UpdateCastbarPosition(castbarType)
+                                end
+                            end,
+                        },
+                        essentialCDAdjustForIcon = {
+                            order = 16.5, type = "toggle", name = "Adjust Width for Icon (EssentialCD)",
+                            desc = "Automatically subtract icon width from castbar width when using Match Anchor Width. Enable this if your icon sticks out horizontally.",
+                            disabled = function() return not db.enabled or db.anchorFrame ~= "EssentialCooldownViewer" end,
+                            get = function() return db.essentialCDAdjustForIcon end,
+                            set = function(info, value)
+                                db.essentialCDAdjustForIcon = value
+                                if db.enabled and db.anchorFrame then
+                                    MyMod:UpdateCastbarPosition(castbarType)
+                                end
+                            end,
+                        },
+                        essentialCDIconSize = {
+                            order = 17, type = "range", name = "Icon Size (EssentialCD only)",
+                            desc = "Resize the castbar icon when anchored to EssentialCooldownViewer. Set to 0 to match castbar height.",
+                            min = 0, max = 100, step = 1,
+                            disabled = function() return not db.enabled or db.anchorFrame ~= "EssentialCooldownViewer" end,
+                            get = function() return db.essentialCDIconSize or 0 end,
+                            set = function(info, value)
+                                db.essentialCDIconSize = value
                                 if db.enabled and db.anchorFrame then
                                     MyMod:UpdateCastbarPosition(castbarType)
                                 end

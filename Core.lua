@@ -12,7 +12,7 @@ else
     local CA = ElvUI_Castbar_Anchors
     local LibDBIcon = LibStub("LibDBIcon-1.0")
 
-    CA.version = "2.7.2"
+    CA.version = "2.15.0"
     CA.updateTickers = {}
     CA.selectedCastbar = "player"
     CA.useCharacterSettings = false
@@ -31,9 +31,9 @@ else
             ElvUI_Castbar_Anchors_GlobalDB = {
                 minimap = { hide = false, minimapPos = 220 },
                 castbars = {
-                    player = { enabled = false, anchorFrame = nil, anchorPoint = "CENTER", relativePoint = "CENTER", offsetX = 0, offsetY = 0, updateRate = 0.05, usePetFrame = false, petAnchorFrame = nil, normalFrameWidth = nil, normalFrameHeight = nil },
-                    target = { enabled = false, anchorFrame = nil, anchorPoint = "CENTER", relativePoint = "CENTER", offsetX = 0, offsetY = 0, updateRate = 0.05, normalFrameWidth = nil, normalFrameHeight = nil },
-                    focus = { enabled = false, anchorFrame = nil, anchorPoint = "CENTER", relativePoint = "CENTER", offsetX = 0, offsetY = 0, updateRate = 0.05, normalFrameWidth = nil, normalFrameHeight = nil },
+                    player = { enabled = false, anchorFrame = nil, anchorPoint = "CENTER", relativePoint = "CENTER", offsetX = 0, offsetY = 0, updateRate = 0.05, usePetFrame = false, petAnchorFrame = nil, normalFrameWidth = nil, normalFrameHeight = nil, adjustForIcon = false, normalFrameIconSize = 0, iconBorderAdjust = 0, essentialCDIconSize = 0, essentialCDAdjustForIcon = false },
+                    target = { enabled = false, anchorFrame = nil, anchorPoint = "CENTER", relativePoint = "CENTER", offsetX = 0, offsetY = 0, updateRate = 0.05, normalFrameWidth = nil, normalFrameHeight = nil, adjustForIcon = false, normalFrameIconSize = 0, iconBorderAdjust = 0, essentialCDIconSize = 0, essentialCDAdjustForIcon = false },
+                    focus = { enabled = false, anchorFrame = nil, anchorPoint = "CENTER", relativePoint = "CENTER", offsetX = 0, offsetY = 0, updateRate = 0.05, normalFrameWidth = nil, normalFrameHeight = nil, adjustForIcon = false, normalFrameIconSize = 0, iconBorderAdjust = 0, essentialCDIconSize = 0, essentialCDAdjustForIcon = false },
                 },
             }
         end
@@ -41,9 +41,9 @@ else
         if not ElvUI_Castbar_Anchors_CharDB then
             ElvUI_Castbar_Anchors_CharDB = {
                 castbars = {
-                    player = { enabled = false, anchorFrame = nil, anchorPoint = "CENTER", relativePoint = "CENTER", offsetX = 0, offsetY = 0, updateRate = 0.05, usePetFrame = false, petAnchorFrame = nil, normalFrameWidth = nil, normalFrameHeight = nil },
-                    target = { enabled = false, anchorFrame = nil, anchorPoint = "CENTER", relativePoint = "CENTER", offsetX = 0, offsetY = 0, updateRate = 0.05, normalFrameWidth = nil, normalFrameHeight = nil },
-                    focus = { enabled = false, anchorFrame = nil, anchorPoint = "CENTER", relativePoint = "CENTER", offsetX = 0, offsetY = 0, updateRate = 0.05, normalFrameWidth = nil, normalFrameHeight = nil },
+                    player = { enabled = false, anchorFrame = nil, anchorPoint = "CENTER", relativePoint = "CENTER", offsetX = 0, offsetY = 0, updateRate = 0.05, usePetFrame = false, petAnchorFrame = nil, normalFrameWidth = nil, normalFrameHeight = nil, adjustForIcon = false, normalFrameIconSize = 0, iconBorderAdjust = 0, essentialCDIconSize = 0, essentialCDAdjustForIcon = false },
+                    target = { enabled = false, anchorFrame = nil, anchorPoint = "CENTER", relativePoint = "CENTER", offsetX = 0, offsetY = 0, updateRate = 0.05, normalFrameWidth = nil, normalFrameHeight = nil, adjustForIcon = false, normalFrameIconSize = 0, iconBorderAdjust = 0, essentialCDIconSize = 0, essentialCDAdjustForIcon = false },
+                    focus = { enabled = false, anchorFrame = nil, anchorPoint = "CENTER", relativePoint = "CENTER", offsetX = 0, offsetY = 0, updateRate = 0.05, normalFrameWidth = nil, normalFrameHeight = nil, adjustForIcon = false, normalFrameIconSize = 0, iconBorderAdjust = 0, essentialCDIconSize = 0, essentialCDAdjustForIcon = false },
                 },
             }
         end
@@ -172,15 +172,39 @@ else
                 if anchorWidth and anchorWidth > 0 then
                     -- Apply border adjustment to width
                     local borderAdjust = (db.borderAdjust or 0) * 2
-                    castbar:SetWidth(anchorWidth - borderAdjust)
+                    local finalWidth = anchorWidth - borderAdjust
+                    
+                    -- Adjust width for icon if enabled
+                    if db.essentialCDAdjustForIcon and castbar.Icon and castbar.Icon:IsShown() then
+                        local iconWidth = castbar.Icon:GetWidth() or 0
+                        if iconWidth > 0 then
+                            finalWidth = finalWidth - iconWidth
+                        end
+                    end
+                    
+                    castbar:SetWidth(finalWidth)
                     
                     -- Set height for EssentialCooldownViewer
                     local height = db.essentialCDHeight or 18
                     castbar:SetHeight(height)
                     
-                    -- Fix icon size to match height (square icon)
+                    -- Force icon size on EVERY update
                     if castbar.Icon then
-                        castbar.Icon:SetSize(height, height)
+                        local iconSize = db.essentialCDIconSize
+                        if not iconSize or iconSize == 0 then
+                            iconSize = height
+                        end
+                        
+                        if iconSize > 0 then
+                            local iconType = castbar.Icon:GetObjectType()
+                            local parent = castbar.Icon:GetParent()
+                            
+                            if iconType == "Texture" and parent and parent.SetSize then
+                                parent:SetSize(iconSize, iconSize)
+                            elseif iconType ~= "Texture" then
+                                castbar.Icon:SetSize(iconSize, iconSize)
+                            end
+                        end
                     end
                     
                     -- Use EssentialCooldownViewer-specific offsets with border centering
@@ -195,9 +219,23 @@ else
                     local height = db.essentialCDHeight or 18
                     castbar:SetHeight(height)
                     
-                    -- Fix icon size
+                    -- Force icon size on EVERY update
                     if castbar.Icon then
-                        castbar.Icon:SetSize(height, height)
+                        local iconSize = db.essentialCDIconSize
+                        if not iconSize or iconSize == 0 then
+                            iconSize = height
+                        end
+                        
+                        if iconSize > 0 then
+                            local iconType = castbar.Icon:GetObjectType()
+                            local parent = castbar.Icon:GetParent()
+                            
+                            if iconType == "Texture" and parent and parent.SetSize then
+                                parent:SetSize(iconSize, iconSize)
+                            elseif iconType ~= "Texture" then
+                                castbar.Icon:SetSize(iconSize, iconSize)
+                            end
+                        end
                     end
                     
                     castbar:SetPoint(db.anchorPoint or "CENTER", essentialFrame, db.relativePoint or "CENTER", finalOffsetX, finalOffsetY)
@@ -218,9 +256,23 @@ else
                 local height = db.essentialCDHeight or 18
                 castbar:SetHeight(height)
                 
-                -- Fix icon size
+                -- Force icon size on EVERY update
                 if castbar.Icon then
-                    castbar.Icon:SetSize(height, height)
+                    local iconSize = db.essentialCDIconSize
+                    if not iconSize or iconSize == 0 then
+                        iconSize = height
+                    end
+                    
+                    if iconSize > 0 then
+                        local iconType = castbar.Icon:GetObjectType()
+                        local parent = castbar.Icon:GetParent()
+                        
+                        if iconType == "Texture" and parent and parent.SetSize then
+                            parent:SetSize(iconSize, iconSize)
+                        elseif iconType ~= "Texture" then
+                            castbar.Icon:SetSize(iconSize, iconSize)
+                        end
+                    end
                 end
                 
                 castbar:SetPoint(db.anchorPoint or "CENTER", essentialFrame, db.relativePoint or "CENTER", finalOffsetX, finalOffsetY)
@@ -255,8 +307,31 @@ else
                     local customWidth = db.normalFrameWidth or 270
                     local customHeight = db.normalFrameHeight or 18
                     
+                    -- Adjust width for icon if enabled
+                    if db.adjustForIcon and castbar.Icon and castbar.Icon:IsShown() then
+                        local iconWidth = castbar.Icon:GetWidth() or 0
+                        if iconWidth > 0 then
+                            customWidth = customWidth - iconWidth
+                        end
+                    end
+                    
                     castbar:SetWidth(customWidth)
                     castbar:SetHeight(customHeight)
+                    
+                    -- Force icon size on EVERY update
+                    if castbar.Icon and db.normalFrameIconSize and db.normalFrameIconSize > 0 then
+                        local iconSize = db.normalFrameIconSize - (db.iconBorderAdjust or 0)
+                        if iconSize < 1 then iconSize = 1 end
+                        
+                        local iconType = castbar.Icon:GetObjectType()
+                        local parent = castbar.Icon:GetParent()
+                        
+                        if iconType == "Texture" and parent and parent.SetSize then
+                            parent:SetSize(iconSize, iconSize)
+                        elseif iconType ~= "Texture" then
+                            castbar.Icon:SetSize(iconSize, iconSize)
+                        end
+                    end
                 end
                 -- For non-unitframe anchors (UIParent, etc), just set position, don't touch size
                 
