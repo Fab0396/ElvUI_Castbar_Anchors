@@ -7,7 +7,7 @@ if not CA then return end
 -- IMMEDIATE DEBUG OUTPUT
 print("|cffFF0000=====================================|r")
 print("|cffFF0000SETTINGS.LUA LOADED SUCCESSFULLY!|r")
-print("|cffFF0000Version: 2.15.0|r")
+print("|cffFF0000Version: 2.15.1|r")
 print("|cffFF0000CA exists:|r", CA ~= nil)
 print("|cffFF0000=====================================|r")
 

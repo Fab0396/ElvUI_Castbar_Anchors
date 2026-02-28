@@ -10,7 +10,7 @@ local MyMod = E:NewModule('ElvUI_Castbar_Anchors', 'AceEvent-3.0', 'AceHook-3.0'
 local EP = LibStub("LibElvUIPlugin-1.0")
 local LibDBIcon = LibStub("LibDBIcon-1.0")
 
-MyMod.version = "2.15.0"
+MyMod.version = "2.15.1"
 
 local CASTBAR_FRAMES = {
     player = "ElvUF_Player_CastBar",
@@ -606,7 +606,7 @@ function MyMod:InsertOptions()
                         iconBorderAdjust = {
                             order = 9.5, type = "range", name = "Icon Border Adjustment",
                             desc = "Reduce icon size by this amount to account for castbar borders (e.g., 2px borders = set to 2)",
-                            min = 0, max = 10, step = 1,
+                            min = 0, max = 10, step = 0.5,
                             disabled = function() 
                                 if not db.enabled then return true end
                                 if not db.anchorFrame then return true end
@@ -635,7 +635,7 @@ function MyMod:InsertOptions()
                         borderAdjust = {
                             order = 12, type = "range", name = "Border Adjustment",
                             desc = "Reduce width by this amount to account for borders (2px borders = set to 2). Automatically centers the castbar - no need to adjust X offset!",
-                            min = 0, max = 10, step = 1,
+                            min = 0, max = 10, step = 0.5,
                             disabled = function() return not db.enabled or db.anchorFrame ~= "EssentialCooldownViewer" or not db.matchWidth end,
                             set = function(info, value)
                                 db.borderAdjust = value

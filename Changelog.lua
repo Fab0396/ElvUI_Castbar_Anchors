@@ -27,7 +27,7 @@ local function SetupChangelog()
         f.title = f:CreateFontString(nil, "OVERLAY")
         f.title:FontTemplate(nil, 20, "OUTLINE")
         f.title:SetPoint("TOP", 0, -10)
-        f.title:SetText("|cff00d4ffElvUI|r Castbar Anchors - v2.15.0")
+        f.title:SetText("|cff00d4ffElvUI|r Castbar Anchors - v2.15.1")
 
         -- Content Scroll Frame
         local sf = CreateFrame("ScrollFrame", "ElvUI_Castbar_Anchors_ChangelogScrollFrame", f, "UIPanelScrollFrameTemplate")
@@ -61,6 +61,27 @@ local function SetupChangelog()
         f.text:SetJustifyH("LEFT")
         f.text:SetWidth(430)
         f.text:SetText([[
+|cffFFD100v2.15.1 - FINE-TUNING UPDATE!|r
+|cff00d4ffQUALITY OF LIFE|r
+
+Changed border adjustment sliders to use
+0.5 increments for finer control!
+
+|cff00FF00What Changed:|r
+Both border adjustment sliders now use 0.5 steps:
+- Icon Border Adjustment: 0, 0.5, 1, 1.5, 2, 2.5...
+- Border Adjustment (EssentialCD): 0, 0.5, 1, 1.5, 2, 2.5...
+
+|cffFFFF00Why This Matters:|r
+Sometimes 1px adjustments are too much!
+Now you can fine-tune with 0.5px precision:
+- Border is 1.5px? Set to 1.5 ✅
+- Need 2.5px adjustment? Set to 2.5 ✅
+
+Perfect for those in-between border sizes!
+
+---
+
 |cffFFD100v2.15.0 - ESSENTIAL CD ICON FIX!|r
 |cff00d4ffCRITICAL FIX|r
 
