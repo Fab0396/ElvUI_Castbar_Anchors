@@ -2,7 +2,7 @@
 ## Title: |cff00d4ffElvUI|r Castbar Anchors
 ## Notes: Anchor your ElvUI castbars to any frame. Works standalone or as ElvUI plugin!
 ## Author: Fab
-## Version: 2.15.1
+## Version: 2.16.2
 ## OptionalDeps: ElvUI
 ## SavedVariables: ElvUI_Castbar_Anchors_GlobalDB, ElvUI_Castbar_Anchors_Version
 ## SavedVariablesPerCharacter: ElvUI_Castbar_Anchors_CharDB

@@ -10,7 +10,7 @@ local MyMod = E:NewModule('ElvUI_Castbar_Anchors', 'AceEvent-3.0', 'AceHook-3.0'
 local EP = LibStub("LibElvUIPlugin-1.0")
 local LibDBIcon = LibStub("LibDBIcon-1.0")
 
-MyMod.version = "2.15.1"
+MyMod.version = "2.16.2"
 
 local CASTBAR_FRAMES = {
     player = "ElvUF_Player_CastBar",
@@ -45,8 +45,8 @@ function MyMod:UpdateCastbarPosition(castbarType)
     -- Wrap everything in pcall to catch forbidden errors
     local success, err = pcall(function()
         local targetAnchorFrameName = db.anchorFrame
-        -- Skip pet override if EssentialCooldownViewer is selected
-        if castbarType == "player" and db.usePetFrame and db.petAnchorFrame and db.anchorFrame ~= "EssentialCooldownViewer" then
+        -- Handle pet override (allow EssentialCD pet override even if main anchor is EssentialCD)
+        if castbarType == "player" and db.usePetFrame and db.petAnchorFrame then
             if UnitExists("pet") then
                 local petFrame = _G[db.petAnchorFrame]
                 if petFrame and petFrame:IsShown() then
@@ -75,8 +75,8 @@ function MyMod:UpdateCastbarPosition(castbarType)
         -- Determine the ACTUAL frame we're anchoring to
         local actualAnchorFrameName = targetAnchorFrameName
         
-        -- CRITICAL: Check what USER selected (db.anchorFrame), not the actual frame (which may be pet override)
-        if db.anchorFrame == "EssentialCooldownViewer" and db.matchWidth then
+        -- Check if ACTUAL anchor (including pet override) is EssentialCooldownViewer
+        if targetAnchorFrameName == "EssentialCooldownViewer" and db.matchWidth then
             -- EssentialCooldownViewer mode with width matching enabled
             -- IMPORTANT: Use actual EssentialCooldownViewer frame, not pet override
             local essentialFrame = _G["EssentialCooldownViewer"]
@@ -151,9 +151,9 @@ function MyMod:UpdateCastbarPosition(castbarType)
             
             -- Update previous anchor tracker
             db.previousAnchor = "EssentialCooldownViewer"
-        elseif db.anchorFrame == "EssentialCooldownViewer" then
+        elseif targetAnchorFrameName == "EssentialCooldownViewer" then
             -- EssentialCooldownViewer but Match Width disabled - use EssentialCD offsets
-            -- IMPORTANT: Use actual EssentialCooldownViewer frame, not pet override
+            -- Use actual EssentialCooldownViewer frame
             local essentialFrame = _G["EssentialCooldownViewer"]
             if not essentialFrame then
                 return -- EssentialCooldownViewer not found
@@ -360,8 +360,7 @@ function MyMod:HookFrameUpdates(castbarType)
     end
     
     -- Also hook pet frame if using pet override (with combat protection)
-    -- Skip if EssentialCooldownViewer is selected to avoid interference
-    if castbarType == "player" and db.usePetFrame and db.petAnchorFrame and db.anchorFrame ~= "EssentialCooldownViewer" then
+    if castbarType == "player" and db.usePetFrame and db.petAnchorFrame then
         local petFrame = _G[db.petAnchorFrame]
         if petFrame and not self.hooked["pet_"..castbarType] then
             self.hooked["pet_"..castbarType] = true
@@ -513,8 +512,24 @@ function MyMod:InsertOptions()
                         spacer2 = { order = 5, type = "description", name = " " },
                         anchorPoint = { order = 6, type = "select", name = "Anchor Point", values = anchorPoints },
                         relativePoint = { order = 7, type = "select", name = "Relative Point", values = anchorPoints },
-                        offsetX = { order = 8, type = "range", name = "X Offset", min = -500, max = 500, step = 1 },
-                        offsetY = { order = 9, type = "range", name = "Y Offset", min = -500, max = 500, step = 1 },
+                        offsetX = { 
+                            order = 8, type = "range", name = "X Offset", min = -500, max = 500, step = 1,
+                            disabled = function()
+                                -- Disable if main anchor is EssentialCD OR pet override is EssentialCD
+                                if db.anchorFrame == "EssentialCooldownViewer" then return true end
+                                if castbarType == "player" and db.usePetFrame and db.petAnchorFrame == "EssentialCooldownViewer" then return true end
+                                return false
+                            end
+                        },
+                        offsetY = { 
+                            order = 9, type = "range", name = "Y Offset", min = -500, max = 500, step = 1,
+                            disabled = function()
+                                -- Disable if main anchor is EssentialCD OR pet override is EssentialCD
+                                if db.anchorFrame == "EssentialCooldownViewer" then return true end
+                                if castbarType == "player" and db.usePetFrame and db.petAnchorFrame == "EssentialCooldownViewer" then return true end
+                                return false
+                            end
+                        },
                         normalFrameWidth = {
                             order = 9.1, type = "range", name = "Castbar Width (Unitframes only)",
                             desc = "Width of castbar when anchored to unitframe Health/Power bars (reads from ElvUI on first load)",
@@ -522,6 +537,10 @@ function MyMod:InsertOptions()
                             disabled = function() 
                                 if not db.enabled then return true end
                                 if not db.anchorFrame then return true end
+                                -- Disable if pet override is EssentialCD
+                                if castbarType == "player" and db.usePetFrame and db.petAnchorFrame == "EssentialCooldownViewer" then
+                                    return true
+                                end
                                 -- Only enable for Health/Power bars
                                 return not (db.anchorFrame:match("HealthBar") or db.anchorFrame:match("PowerBar"))
                             end,
@@ -549,6 +568,10 @@ function MyMod:InsertOptions()
                             disabled = function() 
                                 if not db.enabled then return true end
                                 if not db.anchorFrame then return true end
+                                -- Disable if pet override is EssentialCD
+                                if castbarType == "player" and db.usePetFrame and db.petAnchorFrame == "EssentialCooldownViewer" then
+                                    return true
+                                end
                                 -- Only enable for Health/Power bars
                                 return not (db.anchorFrame:match("HealthBar") or db.anchorFrame:match("PowerBar"))
                             end,
@@ -575,6 +598,10 @@ function MyMod:InsertOptions()
                             disabled = function() 
                                 if not db.enabled then return true end
                                 if not db.anchorFrame then return true end
+                                -- Disable if pet override is EssentialCD
+                                if castbarType == "player" and db.usePetFrame and db.petAnchorFrame == "EssentialCooldownViewer" then
+                                    return true
+                                end
                                 -- Only enable for Health/Power bars
                                 return not (db.anchorFrame:match("HealthBar") or db.anchorFrame:match("PowerBar"))
                             end,
@@ -593,6 +620,10 @@ function MyMod:InsertOptions()
                             disabled = function() 
                                 if not db.enabled then return true end
                                 if not db.anchorFrame then return true end
+                                -- Disable if pet override is EssentialCD
+                                if castbarType == "player" and db.usePetFrame and db.petAnchorFrame == "EssentialCooldownViewer" then
+                                    return true
+                                end
                                 return not (db.anchorFrame:match("HealthBar") or db.anchorFrame:match("PowerBar"))
                             end,
                             get = function() return db.normalFrameIconSize or 0 end,
@@ -610,6 +641,10 @@ function MyMod:InsertOptions()
                             disabled = function() 
                                 if not db.enabled then return true end
                                 if not db.anchorFrame then return true end
+                                -- Disable if pet override is EssentialCD
+                                if castbarType == "player" and db.usePetFrame and db.petAnchorFrame == "EssentialCooldownViewer" then
+                                    return true
+                                end
                                 return not (db.anchorFrame:match("HealthBar") or db.anchorFrame:match("PowerBar"))
                             end,
                             get = function() return db.iconBorderAdjust or 0 end,
@@ -624,7 +659,13 @@ function MyMod:InsertOptions()
                         matchWidth = {
                             order = 11, type = "toggle", name = "Match Anchor Width",
                             desc = "Automatically resize castbar to match the anchor frame's width (EssentialCooldownViewer only)",
-                            disabled = function() return not db.enabled or db.anchorFrame ~= "EssentialCooldownViewer" end,
+                            disabled = function() 
+                                if not db.enabled then return true end
+                                -- Enable if main anchor is EssentialCD OR pet override is EssentialCD
+                                local isEssentialCD = db.anchorFrame == "EssentialCooldownViewer"
+                                local isPetEssentialCD = (castbarType == "player" and db.usePetFrame and db.petAnchorFrame == "EssentialCooldownViewer")
+                                return not (isEssentialCD or isPetEssentialCD)
+                            end,
                             set = function(info, value)
                                 db.matchWidth = value
                                 if db.enabled and db.anchorFrame then
@@ -635,8 +676,13 @@ function MyMod:InsertOptions()
                         borderAdjust = {
                             order = 12, type = "range", name = "Border Adjustment",
                             desc = "Reduce width by this amount to account for borders (2px borders = set to 2). Automatically centers the castbar - no need to adjust X offset!",
-                            min = 0, max = 10, step = 0.5,
-                            disabled = function() return not db.enabled or db.anchorFrame ~= "EssentialCooldownViewer" or not db.matchWidth end,
+                            min = 1, max = 50, step = 0.5,
+                            disabled = function() 
+                                if not db.enabled or not db.matchWidth then return true end
+                                local isEssentialCD = db.anchorFrame == "EssentialCooldownViewer"
+                                local isPetEssentialCD = (castbarType == "player" and db.usePetFrame and db.petAnchorFrame == "EssentialCooldownViewer")
+                                return not (isEssentialCD or isPetEssentialCD)
+                            end,
                             set = function(info, value)
                                 db.borderAdjust = value
                                 if db.enabled and db.anchorFrame then
@@ -649,7 +695,12 @@ function MyMod:InsertOptions()
                             order = 14, type = "range", name = "EssentialCD X Offset",
                             desc = "X offset specifically for EssentialCooldownViewer (separate from normal offset)",
                             min = -500, max = 500, step = 1,
-                            disabled = function() return not db.enabled or db.anchorFrame ~= "EssentialCooldownViewer" end,
+                            disabled = function() 
+                                if not db.enabled then return true end
+                                local isEssentialCD = db.anchorFrame == "EssentialCooldownViewer"
+                                local isPetEssentialCD = (castbarType == "player" and db.usePetFrame and db.petAnchorFrame == "EssentialCooldownViewer")
+                                return not (isEssentialCD or isPetEssentialCD)
+                            end,
                             get = function() return db.essentialCDOffsetX or 0 end,
                             set = function(info, value)
                                 db.essentialCDOffsetX = value
@@ -662,7 +713,12 @@ function MyMod:InsertOptions()
                             order = 15, type = "range", name = "EssentialCD Y Offset",
                             desc = "Y offset specifically for EssentialCooldownViewer (separate from normal offset)",
                             min = -500, max = 500, step = 1,
-                            disabled = function() return not db.enabled or db.anchorFrame ~= "EssentialCooldownViewer" end,
+                            disabled = function() 
+                                if not db.enabled then return true end
+                                local isEssentialCD = db.anchorFrame == "EssentialCooldownViewer"
+                                local isPetEssentialCD = (castbarType == "player" and db.usePetFrame and db.petAnchorFrame == "EssentialCooldownViewer")
+                                return not (isEssentialCD or isPetEssentialCD)
+                            end,
                             get = function() return db.essentialCDOffsetY or 0 end,
                             set = function(info, value)
                                 db.essentialCDOffsetY = value
@@ -675,7 +731,12 @@ function MyMod:InsertOptions()
                             order = 16, type = "range", name = "EssentialCD Height",
                             desc = "Height of castbar when anchored to EssentialCooldownViewer (separate from ElvUI settings)",
                             min = 5, max = 100, step = 1,
-                            disabled = function() return not db.enabled or db.anchorFrame ~= "EssentialCooldownViewer" end,
+                            disabled = function() 
+                                if not db.enabled then return true end
+                                local isEssentialCD = db.anchorFrame == "EssentialCooldownViewer"
+                                local isPetEssentialCD = (castbarType == "player" and db.usePetFrame and db.petAnchorFrame == "EssentialCooldownViewer")
+                                return not (isEssentialCD or isPetEssentialCD)
+                            end,
                             get = function() return db.essentialCDHeight or 18 end,
                             set = function(info, value)
                                 db.essentialCDHeight = value
@@ -687,7 +748,12 @@ function MyMod:InsertOptions()
                         essentialCDAdjustForIcon = {
                             order = 16.5, type = "toggle", name = "Adjust Width for Icon (EssentialCD)",
                             desc = "Automatically subtract icon width from castbar width when using Match Anchor Width. Enable this if your icon sticks out horizontally.",
-                            disabled = function() return not db.enabled or db.anchorFrame ~= "EssentialCooldownViewer" end,
+                            disabled = function() 
+                                if not db.enabled then return true end
+                                local isEssentialCD = db.anchorFrame == "EssentialCooldownViewer"
+                                local isPetEssentialCD = (castbarType == "player" and db.usePetFrame and db.petAnchorFrame == "EssentialCooldownViewer")
+                                return not (isEssentialCD or isPetEssentialCD)
+                            end,
                             get = function() return db.essentialCDAdjustForIcon end,
                             set = function(info, value)
                                 db.essentialCDAdjustForIcon = value
@@ -700,7 +766,12 @@ function MyMod:InsertOptions()
                             order = 17, type = "range", name = "Icon Size (EssentialCD only)",
                             desc = "Resize the castbar icon when anchored to EssentialCooldownViewer. Set to 0 to match castbar height.",
                             min = 0, max = 100, step = 1,
-                            disabled = function() return not db.enabled or db.anchorFrame ~= "EssentialCooldownViewer" end,
+                            disabled = function() 
+                                if not db.enabled then return true end
+                                local isEssentialCD = db.anchorFrame == "EssentialCooldownViewer"
+                                local isPetEssentialCD = (castbarType == "player" and db.usePetFrame and db.petAnchorFrame == "EssentialCooldownViewer")
+                                return not (isEssentialCD or isPetEssentialCD)
+                            end,
                             get = function() return db.essentialCDIconSize or 0 end,
                             set = function(info, value)
                                 db.essentialCDIconSize = value
@@ -750,6 +821,7 @@ function MyMod:InsertOptions()
                         values = {
                             ["ElvUF_Pet_HealthBar"] = "Pet Health Bar",
                             ["ElvUF_Pet_PowerBar"] = "Pet Power Bar",
+                            ["EssentialCooldownViewer"] = "Essential Cooldown Viewer",
                         },
                         get = function() return db.petAnchorFrame end,
                         set = function(info, value)

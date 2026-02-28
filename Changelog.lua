@@ -27,7 +27,7 @@ local function SetupChangelog()
         f.title = f:CreateFontString(nil, "OVERLAY")
         f.title:FontTemplate(nil, 20, "OUTLINE")
         f.title:SetPoint("TOP", 0, -10)
-        f.title:SetText("|cff00d4ffElvUI|r Castbar Anchors - v2.15.1")
+        f.title:SetText("|cff00d4ffElvUI|r Castbar Anchors - v2.16.2")
 
         -- Content Scroll Frame
         local sf = CreateFrame("ScrollFrame", "ElvUI_Castbar_Anchors_ChangelogScrollFrame", f, "UIPanelScrollFrameTemplate")
@@ -61,11 +61,114 @@ local function SetupChangelog()
         f.text:SetJustifyH("LEFT")
         f.text:SetWidth(430)
         f.text:SetText([[
-|cffFFD100v2.15.1 - FINE-TUNING UPDATE!|r
-|cff00d4ffQUALITY OF LIFE|r
+|cffFFD100v2.16.2 - OFFSET GREYING FIX!|r
+|cff00d4ffQUICK FIX|r
 
-Changed border adjustment sliders to use
-0.5 increments for finer control!
+Fixed X/Y Offset sliders not greying out!
+
+|cffFF0000The Problem:|r
+When main anchor = EssentialCooldownViewer,
+the top X Offset and Y Offset sliders were
+still BRIGHT (enabled).
+
+This was confusing because those offsets
+aren't used - EssentialCD uses its own
+EssentialCD X/Y Offset sliders instead!
+
+|cff00FF00The Fix:|r
+X Offset and Y Offset now grey out when:
+1. Main anchor = EssentialCooldownViewer, OR
+2. Pet override = EssentialCooldownViewer
+
+|cffFFFF00Visual Feedback:|r
+When anchored to EssentialCooldownViewer:
+❌ X Offset - GREYED (not used)
+❌ Y Offset - GREYED (not used)
+✅ EssentialCD X Offset - BRIGHT (use this!)
+✅ EssentialCD Y Offset - BRIGHT (use this!)
+
+Perfect! No more confusion about which
+offset sliders to use!
+
+|cff00d4ffCode Change:|r
+Lines 517-527: Updated disabled functions
+Added check: if db.anchorFrame == "EssentialCD"
+
+---
+
+|cffFFD100v2.16.1 - PET OVERRIDE FIX|r
+|cff00d4ffCRITICAL FIXES|r
+
+Fixed two major issues with pet override!
+
+|cff00FF00FIX 1: Settings Now Shared!|r
+Pet override now USES THE SAME EssentialCD
+settings as the main anchor!
+
+Before: Had to configure settings twice ❌
+After: Configure once, works for both! ✅
+
+|cff00FF00FIX 2: Smart UI Greying!|r
+When pet override = EssentialCD, unitframe
+settings are GREYED OUT!
+
+Greyed when pet override is EssentialCD:
+❌ X/Y Offset
+❌ Castbar Width/Height (Unitframes)
+❌ Adjust Width for Icon
+❌ Icon Size (Unitframes)
+❌ Icon Border Adjustment
+
+✅ EssentialCD settings - BRIGHT
+
+Perfect visual feedback!
+
+---
+
+|cffFFD100v2.16.0 - PET OVERRIDE + RANGE UPDATE|r
+|cff00d4ffMAJOR UPDATE|r
+
+Two important improvements!
+
+|cff00FF00NEW: EssentialCD Pet Frame Override!|r
+
+You can now use EssentialCooldownViewer as a
+pet frame override anchor!
+
+|cffFFFF00How To Use:|r
+ElvUI > Plugins > Castbar Anchors > Player
+
+Pet Frame Override:
+- Use Pet Frame when Active: ✅ Checked
+- Pet Frame Quick Select: Essential Cooldown Viewer
+
+Result:
+- When pet active → anchors to EssentialCD
+- When pet inactive → anchors to normal frame
+- ALL EssentialCD settings available! ✅
+
+|cff00d4ffAvailable Settings:|r
+✅ Match Anchor Width
+✅ Border Adjustment
+✅ EssentialCD X/Y Offset
+✅ EssentialCD Height
+✅ Adjust Width for Icon (EssentialCD)
+✅ Icon Size (EssentialCD)
+
+Perfect for classes with pets!
+
+|cff00FF00NEW: Border Range 1-50!|r
+
+Border Adjustment slider range increased!
+
+Before: 0 - 10
+After: 1 - 50 (step 0.5)
+
+Now supports thick borders and complex layouts!
+
+---
+
+|cffFFD100v2.15.1 - FINE-TUNING UPDATE|r
 
 |cff00FF00What Changed:|r
 Both border adjustment sliders now use 0.5 steps:
