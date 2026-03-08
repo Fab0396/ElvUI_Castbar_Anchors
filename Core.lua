@@ -12,7 +12,7 @@ else
     local CA = ElvUI_Castbar_Anchors
     local LibDBIcon = LibStub("LibDBIcon-1.0")
 
-    CA.version = "2.16.2"
+    CA.version = "2.30.0"
     CA.updateTickers = {}
     CA.selectedCastbar = "player"
     CA.useCharacterSettings = false
@@ -31,9 +31,9 @@ else
             ElvUI_Castbar_Anchors_GlobalDB = {
                 minimap = { hide = false, minimapPos = 220 },
                 castbars = {
-                    player = { enabled = false, anchorFrame = nil, anchorPoint = "CENTER", relativePoint = "CENTER", offsetX = 0, offsetY = 0, updateRate = 0.05, usePetFrame = false, petAnchorFrame = nil, normalFrameWidth = nil, normalFrameHeight = nil, adjustForIcon = false, normalFrameIconSize = 0, iconBorderAdjust = 0, essentialCDIconSize = 0, essentialCDAdjustForIcon = false },
-                    target = { enabled = false, anchorFrame = nil, anchorPoint = "CENTER", relativePoint = "CENTER", offsetX = 0, offsetY = 0, updateRate = 0.05, normalFrameWidth = nil, normalFrameHeight = nil, adjustForIcon = false, normalFrameIconSize = 0, iconBorderAdjust = 0, essentialCDIconSize = 0, essentialCDAdjustForIcon = false },
-                    focus = { enabled = false, anchorFrame = nil, anchorPoint = "CENTER", relativePoint = "CENTER", offsetX = 0, offsetY = 0, updateRate = 0.05, normalFrameWidth = nil, normalFrameHeight = nil, adjustForIcon = false, normalFrameIconSize = 0, iconBorderAdjust = 0, essentialCDIconSize = 0, essentialCDAdjustForIcon = false },
+                    player = { enabled = false, anchorFrame = nil, anchorPoint = "CENTER", relativePoint = "CENTER", offsetX = 0, offsetY = 0, updateRate = 0.05, combatUpdateRate = 5, usePetFrame = false, petAnchorFrame = nil, normalFrameWidth = nil, normalFrameHeight = nil, adjustForIcon = false, normalFrameIconSize = 0, iconBorderAdjust = 0, essentialCDIconSize = 0, essentialCDAdjustForIcon = false },
+                    target = { enabled = false, anchorFrame = nil, anchorPoint = "CENTER", relativePoint = "CENTER", offsetX = 0, offsetY = 0, updateRate = 0.05, combatUpdateRate = 5, normalFrameWidth = nil, normalFrameHeight = nil, adjustForIcon = false, normalFrameIconSize = 0, iconBorderAdjust = 0, essentialCDIconSize = 0, essentialCDAdjustForIcon = false },
+                    focus = { enabled = false, anchorFrame = nil, anchorPoint = "CENTER", relativePoint = "CENTER", offsetX = 0, offsetY = 0, updateRate = 0.05, combatUpdateRate = 5, normalFrameWidth = nil, normalFrameHeight = nil, adjustForIcon = false, normalFrameIconSize = 0, iconBorderAdjust = 0, essentialCDIconSize = 0, essentialCDAdjustForIcon = false },
                 },
             }
         end
@@ -41,9 +41,9 @@ else
         if not ElvUI_Castbar_Anchors_CharDB then
             ElvUI_Castbar_Anchors_CharDB = {
                 castbars = {
-                    player = { enabled = false, anchorFrame = nil, anchorPoint = "CENTER", relativePoint = "CENTER", offsetX = 0, offsetY = 0, updateRate = 0.05, usePetFrame = false, petAnchorFrame = nil, normalFrameWidth = nil, normalFrameHeight = nil, adjustForIcon = false, normalFrameIconSize = 0, iconBorderAdjust = 0, essentialCDIconSize = 0, essentialCDAdjustForIcon = false },
-                    target = { enabled = false, anchorFrame = nil, anchorPoint = "CENTER", relativePoint = "CENTER", offsetX = 0, offsetY = 0, updateRate = 0.05, normalFrameWidth = nil, normalFrameHeight = nil, adjustForIcon = false, normalFrameIconSize = 0, iconBorderAdjust = 0, essentialCDIconSize = 0, essentialCDAdjustForIcon = false },
-                    focus = { enabled = false, anchorFrame = nil, anchorPoint = "CENTER", relativePoint = "CENTER", offsetX = 0, offsetY = 0, updateRate = 0.05, normalFrameWidth = nil, normalFrameHeight = nil, adjustForIcon = false, normalFrameIconSize = 0, iconBorderAdjust = 0, essentialCDIconSize = 0, essentialCDAdjustForIcon = false },
+                    player = { enabled = false, anchorFrame = nil, anchorPoint = "CENTER", relativePoint = "CENTER", offsetX = 0, offsetY = 0, updateRate = 0.05, combatUpdateRate = 5, usePetFrame = false, petAnchorFrame = nil, normalFrameWidth = nil, normalFrameHeight = nil, adjustForIcon = false, normalFrameIconSize = 0, iconBorderAdjust = 0, essentialCDIconSize = 0, essentialCDAdjustForIcon = false },
+                    target = { enabled = false, anchorFrame = nil, anchorPoint = "CENTER", relativePoint = "CENTER", offsetX = 0, offsetY = 0, updateRate = 0.05, combatUpdateRate = 5, normalFrameWidth = nil, normalFrameHeight = nil, adjustForIcon = false, normalFrameIconSize = 0, iconBorderAdjust = 0, essentialCDIconSize = 0, essentialCDAdjustForIcon = false },
+                    focus = { enabled = false, anchorFrame = nil, anchorPoint = "CENTER", relativePoint = "CENTER", offsetX = 0, offsetY = 0, updateRate = 0.05, combatUpdateRate = 5, normalFrameWidth = nil, normalFrameHeight = nil, adjustForIcon = false, normalFrameIconSize = 0, iconBorderAdjust = 0, essentialCDIconSize = 0, essentialCDAdjustForIcon = false },
                 },
             }
         end
