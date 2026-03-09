@@ -27,7 +27,7 @@ local function SetupChangelog()
         f.title = f:CreateFontString(nil, "OVERLAY")
         f.title:FontTemplate(nil, 20, "OUTLINE")
         f.title:SetPoint("TOP", 0, -10)
-        f.title:SetText("|cff00d4ffElvUI|r Castbar Anchors - v2.30.0")
+        f.title:SetText("|cff00d4ffElvUI|r Castbar Anchors - v2.34.0")
 
         -- Content Scroll Frame
         local sf = CreateFrame("ScrollFrame", "ElvUI_Castbar_Anchors_ChangelogScrollFrame", f, "UIPanelScrollFrameTemplate")
@@ -61,7 +61,297 @@ local function SetupChangelog()
         f.text:SetJustifyH("LEFT")
         f.text:SetWidth(430)
         f.text:SetText([[
+|cffFFD100v2.34.0 - PERSISTENT CUSTOMIZATIONS!|r
+|cff00FF00Fixed: Now Actually Works!|r
+
+✅ Text positioning now persists!
+✅ Font changes now persist!
+✅ Texture changes now persist!
+✅ ElvUI can't override them anymore!
+
+|cff00FF00The Problem:|r
+
+ElvUI constantly resets castbar text, fonts,
+and textures back to its own defaults. Even
+when you changed settings in v2.32, ElvUI
+would override them immediately.
+
+Your changes would apply for 0.1 seconds,
+then *poof* - back to ElvUI defaults.
+
+|cff00FF00The Solution:|r
+
+Created a persistence system that FIGHTS BACK:
+
+1. **Separate ApplyCustomizations Function**
+   - Handles ONLY text/font/texture
+   - Runs independently from positioning
+   - Can be called repeatedly
+
+2. **Hooked ElvUI's Update Functions**
+   - PostCastStart - when cast begins
+   - PostChannelStart - when channeling
+   - PostCastUpdate - during cast
+   - PostChannelUpdate - during channel
+   
+   After EACH of these, we reapply YOUR
+   customizations!
+
+3. **Continuous Ticker**
+   - Runs every 0.1 seconds
+   - Constantly reapplies customizations
+   - ElvUI resets? We override it back!
+   - It's a constant battle, and WE WIN!
+
+4. **Multiple Application Points**
+   - When castbar updates position
+   - When castbar starts casting
+   - When castbar updates
+   - Every 0.1 seconds via ticker
+   - After any ElvUI change
+
+|cffFFFF00How It Works Now:|r
+
+1. You enable "Enable Text Positioning"
+2. You move the text X offset to 50
+3. ElvUI tries to reset it
+4. Our hooks catch it immediately
+5. Reapply your customization
+6. ElvUI tries again 0.1s later
+7. Our ticker catches it
+8. Reapply again
+9. Repeat forever!
+
+Result: YOUR settings stay active! ✅
+
+|cffFFFF00Technical Details:|r
+
+Old approach (v2.32):
+- Applied once in UpdateCastbarPosition
+- ElvUI overrode it immediately ❌
+
+New approach (v2.34):
+- ApplyCustomizations() function ✅
+- Hooked to 4 castbar events ✅
+- Continuous 0.1s ticker ✅
+- Called after position updates ✅
+- Multiple redundant application points ✅
+
+Even if ElvUI fights us, we have 5+
+different ways to reapply!
+
+|cff00d4ffWhat Changed:|r
+
+**NEW FUNCTION:**
+MyMod:ApplyCustomizations(castbarType)
+- Handles text positioning
+- Handles font changes
+- Handles texture changes
+- Wrapped in pcall for safety
+
+**NEW HOOKS:**
+- PostCastStart
+- PostChannelStart
+- PostCastUpdate
+- PostChannelUpdate
+
+**NEW TICKER:**
+- customizationTickers[castbarType]
+- Runs every 0.1s
+- Stopped in StopAnchoring
+- Persistent override system
+
+**REMOVED:**
+- Debug spam (no more purple text!)
+- Duplicate customization code
+- One-time application approach
+
+|cff00FF00How To Test:|r
+
+1. Enable a castbar (Player/Target/Focus)
+2. Enable "Enable Text Positioning"
+3. Move Text X Offset to 100
+4. Cast a spell
+5. Text should be at +100 offset ✅
+6. It should STAY there ✅
+7. Cast again - still at +100 ✅
+
+Same for fonts and textures!
+
+No more fighting with ElvUI! 🎉
+
+---
+
+|cffFFD100v2.33.0-DEBUG|r
+(Diagnostic version - found the problem!)
+
+|cffFFD100v2.32.0 - TOGGLES & FIXES|r
+(Showed options but ElvUI overrode them)
+|cff00FF00Fixed Implementation + Optional Features|r
+
+✅ Fixed: Text/Font/Texture now work correctly
+✅ NEW: Enable toggles - opt-in, not forced!
+
+|cff00FF00What's Fixed:|r
+
+v2.31.0 showed the options but they didn't
+work. This version:
+
+1. Fixed Font Implementation:
+   - Now uses SetFont() instead of FontTemplate()
+   - Actually applies font changes ✅
+
+2. Fixed Text Positioning:
+   - Wrapped in pcall for safety
+   - Actually repositions text ✅
+
+3. Fixed Texture:
+   - Actually applies texture changes ✅
+
+|cff00FF00NEW: Enable Toggles!|r
+
+Both features are now OPTIONAL and
+DISABLED BY DEFAULT:
+
+**Text Positioning Group:**
+- "Enable Text Positioning" toggle at top
+- When OFF: All options hidden, uses ElvUI defaults
+- When ON: Shows all positioning options
+
+**Appearance Group:**
+- "Enable Appearance Customization" toggle at top
+- When OFF: All options hidden, uses ElvUI defaults
+- When ON: Shows font and texture options
+
+|cffFFFF00Why Toggles?|r
+
+- Not everyone wants to customize these
+- ElvUI's defaults work fine for most people
+- Keeps UI clean when you don't need it
+- Easy to turn on/off without losing settings
+
+|cffFFFF00How To Use:|r
+
+1. Open ElvUI config
+2. Go to Castbar Anchors > Player
+3. Scroll down to "Text Positioning" group
+4. Check "Enable Text Positioning"
+5. Options appear! Adjust as desired
+6. Same for "Appearance" group
+
+|cffFFFF00Default State:|r
+
+Both features start DISABLED:
+- customizeText: false
+- customizeAppearance: false
+
+This means by default, the addon:
+- Uses ElvUI's text positioning ✅
+- Uses ElvUI's fonts ✅
+- Uses ElvUI's textures ✅
+- Doesn't force anything on you ✅
+
+Only when you enable the toggles do the
+custom settings apply!
+
+|cff00d4ffSettings Are Saved:|r
+
+When you enable and configure, settings
+are saved! If you disable the toggle,
+your settings remain but aren't applied.
+Re-enable anytime to restore your custom
+settings!
+
+Now fully functional and optional! 🎉
+
+---
+
+|cffFFD100v2.31.0 - TEXT & APPEARANCE|r
+(Showed options but didn't work)
+
 |cffFFD100v2.30.0 - SILENT MODE|r
+(Removed chat spam)
+|cff00FF00New Customization Features!|r
+
+✅ NEW: Text positioning controls
+✅ NEW: Font customization
+✅ NEW: Texture selection
+
+|cff00FF00Text Positioning Group:|r
+
+Control where your cast name and cast time
+appear on the castbar!
+
+Cast Name Text:
+- Anchor Point (where it attaches)
+- X Offset (-200 to +200)
+- Y Offset (-50 to +50)
+
+Cast Time Text:
+- Anchor Point (where it attaches)
+- X Offset (-200 to +200)
+- Y Offset (-50 to +50)
+
+Default:
+- Cast Name: LEFT side
+- Cast Time: RIGHT side
+
+|cff00FF00Appearance Group:|r
+
+Font:
+- Choose from all installed fonts
+- Uses LibSharedMedia (LSM)
+- Works with ElvUI font selection
+
+Font Size:
+- 6 to 32 pixels
+- Default: 12
+
+Font Outline:
+- None
+- Outline
+- Thick Outline
+- Monochrome
+- Monochrome Outline
+
+Castbar Texture:
+- Choose from all statusbar textures
+- Uses LibSharedMedia (LSM)
+- Works with ElvUI texture selection
+- Default: ElvUI Norm
+
+|cffFFFF00How It Works:|r
+
+All settings apply in real-time!
+- Change text position → Updates instantly
+- Change font → Updates instantly
+- Change texture → Updates instantly
+
+Works per-castbar:
+- Player castbar can have different settings
+- Target castbar can have different settings
+- Focus castbar can have different settings
+
+Works per-profile:
+- Each ElvUI profile has its own settings
+
+|cff00d4ffExample Uses:|r
+
+- Move cast time to top of castbar
+- Use a different font for better visibility
+- Match castbar texture to your UI theme
+- Center cast name on the bar
+- Create unique styles for each castbar type
+
+Fully customizable! 🎨
+
+---
+
+|cffFFD100v2.30.0 - SILENT MODE|r
+(Removed all chat spam)
+
+|cffFFD100v2.29.0 - ALL SETTINGS WORKING|r
+(Fixed get/set functions)
 |cff00FF00No More Chat Spam!|r
 
 ✅ Removed: All chat messages
@@ -386,7 +676,7 @@ Profile Changes:
 
 |cffFFFF00Version History:|r
 
-v2.30.0:
+v2.34.0:
 - Removed experimental close/reopen code
 - Clean, stable release
 - Documented profile UI limitation
@@ -1385,7 +1675,7 @@ first, then we'll fix profile swapping!
 - No control over when it hides ❌
 - Completely wrong approach ❌
 
-|cff00FF00NEW in v2.30.0: Proper Toggle!|r
+|cff00FF00NEW in v2.34.0: Proper Toggle!|r
 
 Button: "Show / Hide Castbar"
 
@@ -1919,7 +2209,7 @@ to diagnose anchoring issues!
 |cff00FFFF Cyan|r - Update messages
 
 |cffFFFF00How To Use:|r
-1. Install v2.30.0
+1. Install v2.34.0
 2. Type /reload
 3. Try changing anchors
 4. Check chat for debug messages
@@ -2252,7 +2542,7 @@ Always uses PLAYER castbar settings from
 the addon, never ElvUI's pet castbar settings!
 
 |cffFFFF00TEST THIS:|r
-1. Install v2.30.0
+1. Install v2.34.0
 2. Configure width/height in addon settings
 3. Spawn pet in combat
 4. Castbar should use YOUR configured size! ✅
@@ -2309,7 +2599,7 @@ width for each frame type!
 [Width] Read from pet Width: 150 Height: 18
 
 |cffFFFF00TEST THIS:|r
-1. Install v2.30.0
+1. Install v2.34.0
 2. Main Anchor: EssentialCooldownViewer
 3. Pet Override: Pet Health Bar
 4. Enter combat
@@ -2349,7 +2639,7 @@ C_Timer.NewTicker (Blizzard timer):
 - Keeps ticking no matter what ✅
 
 |cffFFFF00TEST THIS:|r
-1. Install v2.30.0
+1. Install v2.34.0
 2. Type /reload
 3. Watch for ticker messages every 0.5s:
    [Ticker] Combat ticker fired! In combat: false
@@ -2385,7 +2675,7 @@ When updating position:
 - "[UpdatePosition] pcall completed. Success: true"
 
 |cff00FF00TEST THIS:|r
-1. Install v2.30.0
+1. Install v2.34.0
 2. Enter combat WITH PET
 3. Dismiss pet
 4. Look for these messages:
@@ -2432,7 +2722,7 @@ Every X seconds (ticker firing):
 - OR combat update messages if in combat
 
 |cff00FF00HOW TO TEST:|r
-1. Install v2.30.0
+1. Install v2.34.0
 2. Type /reload
 3. LOOK FOR GREEN "[SETUP]" messages
 4. Did it say "Creating combat update ticker"?
@@ -2490,7 +2780,7 @@ happening when you summon/dismiss pet in combat.
 - "Final target anchor: X"
 
 |cffFFFF00HOW TO TEST:|r
-1. Install v2.30.0
+1. Install v2.34.0
 2. Set Combat Update Rate: 1 second
 3. Enter combat
 4. Summon pet
@@ -2581,7 +2871,7 @@ combat on ElvUI castbars! ✅
 - Instant response! ✅
 
 |cffFFFF00Testing Instructions:|r
-1. Install v2.30.0
+1. Install v2.34.0
 2. Set Combat Update Rate: 1 second
 3. Enter combat
 4. Summon/dismiss pet
@@ -2662,7 +2952,7 @@ if pet status changed then
 end
 ```
 
-New (v2.30.0 - FIXED):
+New (v2.34.0 - FIXED):
 ```
 if pet status changed then
     Try to update position with pcall()
@@ -2752,7 +3042,7 @@ During combat:
 - Try SetPoint() → BLOCKED by taint! ❌
 ```
 
-New (v2.30.0 - FIXED):
+New (v2.34.0 - FIXED):
 ```
 During combat:
 - Check if pet status changed

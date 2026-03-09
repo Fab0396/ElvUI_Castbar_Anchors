@@ -21,9 +21,48 @@ local CASTBAR_FRAMES = {
 -- Default Settings (stored in ElvUI's profile database)
 P['ElvUI_Castbar_Anchors'] = {
     ['castbars'] = {
-        ['player'] = { ['enabled'] = false, ['anchorFrame'] = nil, ['anchorPoint'] = "CENTER", ['relativePoint'] = "CENTER", ['offsetX'] = 0, ['offsetY'] = 0, ['updateRate'] = 0.05, ['combatUpdateRate'] = 5, ['usePetFrame'] = false, ['petAnchorFrame'] = nil, ['normalFrameWidth'] = nil, ['normalFrameHeight'] = nil, ['adjustForIcon'] = false, ['normalFrameIconSize'] = 0, ['iconBorderAdjust'] = 0, ['essentialCDIconSize'] = 0, ['essentialCDAdjustForIcon'] = false },
-        ['target'] = { ['enabled'] = false, ['anchorFrame'] = nil, ['anchorPoint'] = "CENTER", ['relativePoint'] = "CENTER", ['offsetX'] = 0, ['offsetY'] = 0, ['updateRate'] = 0.05, ['combatUpdateRate'] = 5, ['normalFrameWidth'] = nil, ['normalFrameHeight'] = nil, ['adjustForIcon'] = false, ['normalFrameIconSize'] = 0, ['iconBorderAdjust'] = 0, ['essentialCDIconSize'] = 0, ['essentialCDAdjustForIcon'] = false },
-        ['focus'] = { ['enabled'] = false, ['anchorFrame'] = nil, ['anchorPoint'] = "CENTER", ['relativePoint'] = "CENTER", ['offsetX'] = 0, ['offsetY'] = 0, ['updateRate'] = 0.05, ['combatUpdateRate'] = 5, ['normalFrameWidth'] = nil, ['normalFrameHeight'] = nil, ['adjustForIcon'] = false, ['normalFrameIconSize'] = 0, ['iconBorderAdjust'] = 0, ['essentialCDIconSize'] = 0, ['essentialCDAdjustForIcon'] = false },
+        ['player'] = { 
+            ['enabled'] = false, ['anchorFrame'] = nil, ['anchorPoint'] = "CENTER", ['relativePoint'] = "CENTER", ['offsetX'] = 0, ['offsetY'] = 0, 
+            ['updateRate'] = 0.05, ['combatUpdateRate'] = 5, ['usePetFrame'] = false, ['petAnchorFrame'] = nil, 
+            ['normalFrameWidth'] = nil, ['normalFrameHeight'] = nil, ['adjustForIcon'] = false, ['normalFrameIconSize'] = 0, ['iconBorderAdjust'] = 0, 
+            ['essentialCDIconSize'] = 0, ['essentialCDAdjustForIcon'] = false,
+            -- Text positioning (disabled by default)
+            ['customizeText'] = false,
+            ['textXOffset'] = 0, ['textYOffset'] = 0, ['textAnchor'] = "LEFT",
+            ['timeXOffset'] = 0, ['timeYOffset'] = 0, ['timeAnchor'] = "RIGHT",
+            -- Appearance (disabled by default)
+            ['customizeAppearance'] = false,
+            ['font'] = "PT Sans Narrow", ['fontSize'] = 12, ['fontOutline'] = "OUTLINE",
+            ['texture'] = "ElvUI Norm"
+        },
+        ['target'] = { 
+            ['enabled'] = false, ['anchorFrame'] = nil, ['anchorPoint'] = "CENTER", ['relativePoint'] = "CENTER", ['offsetX'] = 0, ['offsetY'] = 0, 
+            ['updateRate'] = 0.05, ['combatUpdateRate'] = 5, 
+            ['normalFrameWidth'] = nil, ['normalFrameHeight'] = nil, ['adjustForIcon'] = false, ['normalFrameIconSize'] = 0, ['iconBorderAdjust'] = 0, 
+            ['essentialCDIconSize'] = 0, ['essentialCDAdjustForIcon'] = false,
+            -- Text positioning (disabled by default)
+            ['customizeText'] = false,
+            ['textXOffset'] = 0, ['textYOffset'] = 0, ['textAnchor'] = "LEFT",
+            ['timeXOffset'] = 0, ['timeYOffset'] = 0, ['timeAnchor'] = "RIGHT",
+            -- Appearance (disabled by default)
+            ['customizeAppearance'] = false,
+            ['font'] = "PT Sans Narrow", ['fontSize'] = 12, ['fontOutline'] = "OUTLINE",
+            ['texture'] = "ElvUI Norm"
+        },
+        ['focus'] = { 
+            ['enabled'] = false, ['anchorFrame'] = nil, ['anchorPoint'] = "CENTER", ['relativePoint'] = "CENTER", ['offsetX'] = 0, ['offsetY'] = 0, 
+            ['updateRate'] = 0.05, ['combatUpdateRate'] = 5, 
+            ['normalFrameWidth'] = nil, ['normalFrameHeight'] = nil, ['adjustForIcon'] = false, ['normalFrameIconSize'] = 0, ['iconBorderAdjust'] = 0, 
+            ['essentialCDIconSize'] = 0, ['essentialCDAdjustForIcon'] = false,
+            -- Text positioning (disabled by default)
+            ['customizeText'] = false,
+            ['textXOffset'] = 0, ['textYOffset'] = 0, ['textAnchor'] = "LEFT",
+            ['timeXOffset'] = 0, ['timeYOffset'] = 0, ['timeAnchor'] = "RIGHT",
+            -- Appearance (disabled by default)
+            ['customizeAppearance'] = false,
+            ['font'] = "PT Sans Narrow", ['fontSize'] = 12, ['fontOutline'] = "OUTLINE",
+            ['texture'] = "ElvUI Norm"
+        },
     },
 }
 
@@ -34,6 +73,70 @@ G['ElvUI_Castbar_Anchors'] = {
 
 MyMod.updateTickers = {}
 MyMod.hooked = {}
+
+-- Apply text/font/texture customizations (separate from positioning)
+function MyMod:ApplyCustomizations(castbarType)
+    local db = E.db.ElvUI_Castbar_Anchors.castbars[castbarType]
+    if not db or not db.enabled then return end
+    
+    local castbar = self:GetCastbar(castbarType)
+    if not castbar then return end
+    
+    pcall(function()
+        -- Only apply if customization is enabled
+        if db.customizeText then
+            -- Update Cast Name Text Position
+            if castbar.Text then
+                local textAnchor = db.textAnchor or "LEFT"
+                local textX = db.textXOffset or 0
+                local textY = db.textYOffset or 0
+                
+                castbar.Text:ClearAllPoints()
+                castbar.Text:SetPoint(textAnchor, castbar, textAnchor, textX, textY)
+                castbar.Text:SetJustifyH("LEFT")
+            end
+            
+            -- Update Cast Time Text Position
+            if castbar.Time then
+                local timeAnchor = db.timeAnchor or "RIGHT"
+                local timeX = db.timeXOffset or 0
+                local timeY = db.timeYOffset or 0
+                
+                castbar.Time:ClearAllPoints()
+                castbar.Time:SetPoint(timeAnchor, castbar, timeAnchor, timeX, timeY)
+                castbar.Time:SetJustifyH("RIGHT")
+            end
+        end
+        
+        -- Only apply if appearance customization is enabled
+        if db.customizeAppearance then
+            -- Update Font for Text and Time
+            if db.font and db.fontSize then
+                local fontPath = E.LSM:Fetch("font", db.font)
+                local fontSize = db.fontSize or 12
+                local fontOutline = db.fontOutline or "OUTLINE"
+                
+                if fontPath then
+                    if castbar.Text and castbar.Text.SetFont then
+                        castbar.Text:SetFont(fontPath, fontSize, fontOutline)
+                    end
+                    if castbar.Time and castbar.Time.SetFont then
+                        castbar.Time:SetFont(fontPath, fontSize, fontOutline)
+                    end
+                end
+            end
+            
+            -- Update Castbar Texture
+            if db.texture then
+                local texture = E.LSM:Fetch("statusbar", db.texture)
+                if texture and castbar.SetStatusBarTexture then
+                    castbar:SetStatusBarTexture(texture)
+                end
+            end
+        end
+    end)
+end
+
 
 function MyMod:GetCastbar(castbarType)
     return _G[CASTBAR_FRAMES[castbarType]]
@@ -296,6 +399,11 @@ function MyMod:UpdateCastbarPosition(castbarType)
             end
         end)
         
+        -- Apply customizations (text/font/texture) after positioning
+        C_Timer.After(0.02, function()
+            MyMod:ApplyCustomizations(castbarType)
+        end)
+        
     end)
     
     if not success then
@@ -341,6 +449,36 @@ function MyMod:StartAnchoring(castbarType)
                     end)
                 end
             end)
+            
+            -- Hook castbar update functions to reapply customizations
+            -- These functions are called by ElvUI when the castbar updates
+            if castbar.PostCastStart then
+                self:SecureHook(castbar, "PostCastStart", function()
+                    C_Timer.After(0.01, function()
+                        MyMod:ApplyCustomizations(castbarType)
+                    end)
+                end)
+            end
+            
+            if castbar.PostChannelStart then
+                self:SecureHook(castbar, "PostChannelStart", function()
+                    C_Timer.After(0.01, function()
+                        MyMod:ApplyCustomizations(castbarType)
+                    end)
+                end)
+            end
+            
+            if castbar.PostCastUpdate then
+                self:SecureHook(castbar, "PostCastUpdate", function()
+                    MyMod:ApplyCustomizations(castbarType)
+                end)
+            end
+            
+            if castbar.PostChannelUpdate then
+                self:SecureHook(castbar, "PostChannelUpdate", function()
+                    MyMod:ApplyCustomizations(castbarType)
+                end)
+            end
         end)
         
         if hookSuccess then
@@ -354,6 +492,14 @@ function MyMod:StartAnchoring(castbarType)
             MyMod:UpdateCastbarPosition(castbarType)
         end
     end, true)
+    
+    -- Additional ticker for customizations (runs more frequently to combat ElvUI resets)
+    self.customizationTickers = self.customizationTickers or {}
+    self.customizationTickers[castbarType] = C_Timer.NewTicker(0.1, function()
+        if not InCombatLockdown() then
+            MyMod:ApplyCustomizations(castbarType)
+        end
+    end)
     
     -- Combat update ticker for pet override (checks pet status during combat)
     if castbarType == "player" and db.usePetFrame and db.petAnchorFrame then
@@ -492,6 +638,12 @@ function MyMod:StopAnchoring(castbarType)
     if self.combatUpdateTickers and self.combatUpdateTickers[castbarType] then
         self.combatUpdateTickers[castbarType]:Cancel()
         self.combatUpdateTickers[castbarType] = nil
+    end
+    
+    -- Stop customization ticker
+    if self.customizationTickers and self.customizationTickers[castbarType] then
+        self.customizationTickers[castbarType]:Cancel()
+        self.customizationTickers[castbarType] = nil
     end
     
 end
@@ -1255,14 +1407,232 @@ function MyMod:InsertOptions()
                         },
                     },
                 },
+                spacer3 = { order = 8, type = "description", name = "" },
+                textGroup = {
+                    order = 9, type = "group", name = "Text Positioning", guiInline = true,
+                    disabled = function() 
+                        local db = getDB()
+                        return not db.enabled 
+                    end,
+                    args = {
+                        customizeText = {
+                            order = 0, type = "toggle", name = "Enable Text Positioning",
+                            desc = "Enable custom text positioning (disabled by default - uses ElvUI defaults)",
+                            set = function(info, value)
+                                local db = getDB()
+                                db.customizeText = value
+                                if db.enabled then
+                                    MyMod:UpdateCastbarPosition(castbarType)
+                                end
+                            end,
+                        },
+                        spacer0 = { order = 0.5, type = "description", name = " " },
+                        castNameHeader = { 
+                            order = 1, type = "header", name = "Cast Name Text",
+                            hidden = function() 
+                                local db = getDB()
+                                return not db.customizeText 
+                            end,
+                        },
+                        textAnchor = {
+                            order = 2, type = "select", name = "Text Anchor Point",
+                            desc = "Where the text anchors to the castbar",
+                            values = anchorPoints,
+                            hidden = function() 
+                                local db = getDB()
+                                return not db.customizeText 
+                            end,
+                        },
+                        textXOffset = {
+                            order = 3, type = "range", name = "Text X Offset",
+                            min = -200, max = 200, step = 1,
+                            hidden = function() 
+                                local db = getDB()
+                                return not db.customizeText 
+                            end,
+                            set = function(info, value)
+                                local db = getDB()
+                                db.textXOffset = value
+                                if db.enabled then
+                                    MyMod:UpdateCastbarPosition(castbarType)
+                                end
+                            end,
+                        },
+                        textYOffset = {
+                            order = 4, type = "range", name = "Text Y Offset",
+                            min = -50, max = 50, step = 1,
+                            hidden = function() 
+                                local db = getDB()
+                                return not db.customizeText 
+                            end,
+                            set = function(info, value)
+                                local db = getDB()
+                                db.textYOffset = value
+                                if db.enabled then
+                                    MyMod:UpdateCastbarPosition(castbarType)
+                                end
+                            end,
+                        },
+                        spacer1 = { 
+                            order = 5, type = "description", name = " ",
+                            hidden = function() 
+                                local db = getDB()
+                                return not db.customizeText 
+                            end,
+                        },
+                        castTimeHeader = { 
+                            order = 6, type = "header", name = "Cast Time Text",
+                            hidden = function() 
+                                local db = getDB()
+                                return not db.customizeText 
+                            end,
+                        },
+                        timeAnchor = {
+                            order = 7, type = "select", name = "Time Anchor Point",
+                            desc = "Where the time text anchors to the castbar",
+                            values = anchorPoints,
+                            hidden = function() 
+                                local db = getDB()
+                                return not db.customizeText 
+                            end,
+                        },
+                        timeXOffset = {
+                            order = 8, type = "range", name = "Time X Offset",
+                            min = -200, max = 200, step = 1,
+                            hidden = function() 
+                                local db = getDB()
+                                return not db.customizeText 
+                            end,
+                            set = function(info, value)
+                                local db = getDB()
+                                db.timeXOffset = value
+                                if db.enabled then
+                                    MyMod:UpdateCastbarPosition(castbarType)
+                                end
+                            end,
+                        },
+                        timeYOffset = {
+                            order = 9, type = "range", name = "Time Y Offset",
+                            min = -50, max = 50, step = 1,
+                            hidden = function() 
+                                local db = getDB()
+                                return not db.customizeText 
+                            end,
+                            set = function(info, value)
+                                local db = getDB()
+                                db.timeYOffset = value
+                                if db.enabled then
+                                    MyMod:UpdateCastbarPosition(castbarType)
+                                end
+                            end,
+                        },
+                    },
+                },
+                spacer4 = { order = 10, type = "description", name = "" },
+                appearanceGroup = {
+                    order = 11, type = "group", name = "Appearance", guiInline = true,
+                    disabled = function() 
+                        local db = getDB()
+                        return not db.enabled 
+                    end,
+                    args = {
+                        customizeAppearance = {
+                            order = 0, type = "toggle", name = "Enable Appearance Customization",
+                            desc = "Enable custom font and texture (disabled by default - uses ElvUI defaults)",
+                            set = function(info, value)
+                                local db = getDB()
+                                db.customizeAppearance = value
+                                if db.enabled then
+                                    MyMod:UpdateCastbarPosition(castbarType)
+                                end
+                            end,
+                        },
+                        spacer0 = { order = 0.5, type = "description", name = " " },
+                        font = {
+                            order = 1, type = "select", name = "Font",
+                            dialogControl = "LSM30_Font",
+                            values = function()
+                                return E.LSM:HashTable("font")
+                            end,
+                            hidden = function() 
+                                local db = getDB()
+                                return not db.customizeAppearance 
+                            end,
+                            set = function(info, value)
+                                local db = getDB()
+                                db.font = value
+                                if db.enabled then
+                                    MyMod:UpdateCastbarPosition(castbarType)
+                                end
+                            end,
+                        },
+                        fontSize = {
+                            order = 2, type = "range", name = "Font Size",
+                            min = 6, max = 32, step = 1,
+                            hidden = function() 
+                                local db = getDB()
+                                return not db.customizeAppearance 
+                            end,
+                            set = function(info, value)
+                                local db = getDB()
+                                db.fontSize = value
+                                if db.enabled then
+                                    MyMod:UpdateCastbarPosition(castbarType)
+                                end
+                            end,
+                        },
+                        fontOutline = {
+                            order = 3, type = "select", name = "Font Outline",
+                            values = {
+                                ["NONE"] = "None",
+                                ["OUTLINE"] = "Outline",
+                                ["THICKOUTLINE"] = "Thick Outline",
+                                ["MONOCHROME"] = "Monochrome",
+                                ["MONOCHROMEOUTLINE"] = "Monochrome Outline",
+                            },
+                            hidden = function() 
+                                local db = getDB()
+                                return not db.customizeAppearance 
+                            end,
+                            set = function(info, value)
+                                local db = getDB()
+                                db.fontOutline = value
+                                if db.enabled then
+                                    MyMod:UpdateCastbarPosition(castbarType)
+                                end
+                            end,
+                        },
+                        texture = {
+                            order = 4, type = "select", name = "Castbar Texture",
+                            dialogControl = "LSM30_Statusbar",
+                            values = function()
+                                return E.LSM:HashTable("statusbar")
+                            end,
+                            hidden = function() 
+                                local db = getDB()
+                                return not db.customizeAppearance 
+                            end,
+                            set = function(info, value)
+                                local db = getDB()
+                                db.texture = value
+                                if db.enabled then
+                                    MyMod:UpdateCastbarPosition(castbarType)
+                                end
+                            end,
+                        },
+                    },
+                },
             },
         }
         
         if castbarType == "player" then
-            options.args.spacer3 = { order = 8, type = "description", name = "" }
+            options.args.spacer5 = { order = 12, type = "description", name = "" }
             options.args.petGroup = {
-                order = 9, type = "group", name = "Pet Frame Override", guiInline = true,
-                disabled = function() return not db.enabled end,
+                order = 13, type = "group", name = "Pet Frame Override", guiInline = true,
+                disabled = function() 
+                    local db = getDB()
+                    return not db.enabled 
+                end,
                 args = {
                     usePetFrame = { 
                         order = 1, type = "toggle", name = "Use Pet Frame when Active", 
