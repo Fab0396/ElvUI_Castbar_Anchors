@@ -53,7 +53,7 @@ This addon automatically detects your setup and runs in the best mode:
 ### Basic Setup
 
 1. Enable the castbar you want (Player/Target/Focus)
-2. Enter frame name (use `/fstack` to find frames) or use the Quick Select
+2. Enter frame name (use `/fstack` to find frames)
 3. Choose anchor points
 4. Adjust X/Y offsets
 5. Set update rate (lower = smoother)
@@ -70,7 +70,7 @@ This addon automatically detects your setup and runs in the best mode:
 - `ElvUF_Target` - Target frame
 - `ElvUF_Focus` - Focus frame
 - `ElvUF_Pet` - Pet frame
-- Use `/fstack` to find custom frames
+- Use `/fstack` to find custom frames (WeakAuras, etc.)
 
 ## 🔧 Requirements
 

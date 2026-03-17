@@ -494,11 +494,10 @@ function MyMod:StartAnchoring(castbarType)
     end, true)
     
     -- Additional ticker for customizations (runs more frequently to combat ElvUI resets)
+    -- Runs DURING COMBAT too - text/font/texture operations are safe!
     self.customizationTickers = self.customizationTickers or {}
     self.customizationTickers[castbarType] = C_Timer.NewTicker(0.1, function()
-        if not InCombatLockdown() then
-            MyMod:ApplyCustomizations(castbarType)
-        end
+        MyMod:ApplyCustomizations(castbarType)
     end)
     
     -- Combat update ticker for pet override (checks pet status during combat)
