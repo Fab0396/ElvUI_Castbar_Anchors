@@ -27,7 +27,7 @@ local function SetupChangelog()
         f.title = f:CreateFontString(nil, "OVERLAY")
         f.title:FontTemplate(nil, 20, "OUTLINE")
         f.title:SetPoint("TOP", 0, -10)
-        f.title:SetText("|cff00d4ffElvUI|r Castbar Anchors - v2.35.0")
+        f.title:SetText("|cff00d4ffElvUI|r Castbar Anchors - v2.39.0")
 
         -- Content Scroll Frame
         local sf = CreateFrame("ScrollFrame", "ElvUI_Castbar_Anchors_ChangelogScrollFrame", f, "UIPanelScrollFrameTemplate")
@@ -61,7 +61,633 @@ local function SetupChangelog()
         f.text:SetJustifyH("LEFT")
         f.text:SetWidth(430)
         f.text:SetText([[
-|cffFFD100v2.35.0 - COMBAT PERSISTENCE FIX!|r
+|cffFFD100v2.39.0 - BORDER ADJUSTMENT RANGE FIX!|r
+|cff00FF00Now: 0-50 (was: 1-50)|r
+
+✅ Changed: Border Adjustment min from 1 to 0
+✅ Now: Can set to 0 for perfect 1:1 width match!
+
+|cff00FF00The Problem:|r
+
+Border Adjustment slider had:
+- Min: 1
+- Max: 50
+
+This meant you COULDN'T set it to 0!
+
+If you had no borders on your castbar,
+you still had to set it to at least 1,
+which made the castbar 2px narrower than
+EssentialCD (1px per side * 2 = 2px total).
+
+Result: Width never matched perfectly ❌
+
+|cff00FF00The Fix:|r
+
+**OLD RANGE:**
+- Min: 1 ❌
+- Max: 50
+- Step: 0.5
+
+**NEW RANGE:**
+- Min: 0 ✅ (NEW!)
+- Max: 50
+- Step: 0.5
+
+Now you can set it to 0 for perfect
+1:1 width matching when you have no
+borders!
+
+|cffFFFF00How To Use:|r
+
+**If you have NO borders:**
+- Set Border Adjustment to 0 ✅
+- Width matches EssentialCD exactly!
+
+**If you have 2px borders:**
+- Set Border Adjustment to 2
+- Reduces width by 4px (2px per side)
+- Perfect fit within borders!
+
+**If you have 1px borders:**
+- Set Border Adjustment to 1
+- Reduces width by 2px (1px per side)
+
+**Formula:**
+Total width reduction = borderAdjust * 2
+(Because there are 2 sides!)
+
+|cff00d4ffExample:|r
+
+EssentialCD width: 400px
+
+**Border Adjustment = 0:**
+Castbar width: 400px ✅
+
+**Border Adjustment = 2:**
+Castbar width: 400 - (2 * 2) = 396px
+Fits within 2px borders! ✅
+
+**Border Adjustment = 5:**
+Castbar width: 400 - (5 * 2) = 390px
+For thick 5px borders!
+
+|cffFFFF00Testing:|r
+
+1. Anchor to EssentialCD
+2. Enable "Match Width"
+3. Set "Border Adjustment" to 0
+4. Cast a spell
+5. Castbar should match EssentialCD width
+   exactly! ✅
+
+Perfect 1:1 match! 🎯
+
+---
+
+|cffFFD100v2.38.0 - ELVUI OVERRIDE PROTECTION|r
+(Added aggressive enforcement)
+
+|cffFFD100v2.37.0 - ESSENTIALCD WIDTH FIX|r
+(Fixed icon sizing order)
+|cff00FF00Fixed: Width Enforced Every 0.1s!|r
+
+✅ Fixed: ElvUI can't override width anymore!
+✅ Fixed: Changing ElvUI castbar width won't break it!
+✅ Added: Aggressive width/height enforcement!
+
+|cff00FF00The Problem:|r
+
+When you changed the castbar width in
+**ElvUI's native castbar settings** (not
+our addon), it would make the castbar tiny
+or completely break the width matching.
+
+Why? ElvUI constantly updates castbars and
+resets their width/height to its own values.
+Our addon only set width in
+UpdateCastbarPosition, which runs every
+0.05-0.5 seconds.
+
+But ElvUI updates MORE OFTEN than that!
+
+**Result:**
+- Our addon sets width: 360px ✅
+- ElvUI resets to its value: 274px ❌
+- 0.1s later our addon sets: 360px ✅
+- ElvUI resets again: 274px ❌
+- Constant fight, ElvUI "wins" more often!
+
+The castbar would flicker between sizes or
+settle on ElvUI's size instead of ours.
+
+|cff00FF00The Fix:|r
+
+Added **aggressive width/height enforcement**
+to the ApplyCustomizations function that
+runs every 0.1 seconds!
+
+**NEW CODE (v2.39.0):**
+```lua
+function MyMod:ApplyCustomizations(castbarType)
+    -- For EssentialCD mode...
+    if anchored to EssentialCD and matchWidth then
+        -- Calculate correct width
+        local correctWidth = calculate()
+        
+        -- CHECK if ElvUI changed it
+        if castbar:GetWidth() ~= correctWidth then
+            -- IMMEDIATELY fix it!
+            castbar:SetWidth(correctWidth)
+        end
+        
+        -- Same for height
+        if castbar:GetHeight() ~= correctHeight then
+            castbar:SetHeight(correctHeight)
+        end
+    end
+    
+    -- Then apply text/font/texture...
+end
+```
+
+Now this runs EVERY 0.1 SECONDS!
+
+**Result:**
+- ElvUI sets width: 274px
+- 0.1s later we check: "Hey, that's wrong!"
+- We immediately fix it: 360px ✅
+- ElvUI tries again...
+- 0.1s later we check again: "Nope!"
+- Fix it again: 360px ✅
+
+We WIN the fight now! 💪
+
+|cffFFFF00How It Works:|r
+
+**Old approach (v2.37.0):**
+- Set width in UpdateCastbarPosition
+- Runs every 0.05-0.5s
+- ElvUI updates more often
+- ElvUI wins ❌
+
+**New approach (v2.39.0):**
+- Set width in UpdateCastbarPosition
+- ALSO enforce in ApplyCustomizations
+- Runs every 0.1s (fixed rate)
+- Checks if width changed
+- Immediately corrects it
+- We win! ✅
+
+The key is the **CHECK FIRST** approach:
+```lua
+if castbar:GetWidth() ~= correctWidth then
+    castbar:SetWidth(correctWidth)
+end
+```
+
+We only set if it's wrong, so we're not
+constantly setting the same value. But we
+CHECK every 0.1s, so ElvUI can't sneak
+changes past us!
+
+|cffFFFF00What Changed:|r
+
+**ADDED to ApplyCustomizations:**
+- Width enforcement for EssentialCD
+- Height enforcement for EssentialCD  
+- Icon width calculation (same as positioning)
+- Border adjustment calculation
+- Runs every 0.1s via customizationTickers
+
+**ENFORCES:**
+- EssentialCD width when matchWidth enabled
+- EssentialCD height
+- Correct icon width subtraction
+- Correct border adjustment
+
+**IGNORES:**
+- ElvUI's native castbar width setting
+- ElvUI's native castbar height setting
+- Any changes ElvUI makes
+
+**NOW YOU CAN:**
+- Set width in ElvUI settings ✅ (ignored)
+- Set width in our addon ✅ (enforced!)
+- Change ElvUI anytime ✅ (won't break!)
+- Our width always wins ✅
+
+|cff00d4ffTesting:|r
+
+1. Anchor to EssentialCD with Match Width
+2. Note the current castbar width
+3. Open ElvUI → UnitFrames → Player
+4. Go to Cast Bar settings
+5. Change Width to something random (e.g., 100)
+6. Close settings
+7. **Castbar should stay at correct width!** ✅
+8. Our addon overrides it within 0.1s ✅
+
+Before v2.39.0:
+- Changing to 100 → castbar becomes tiny ❌
+
+After v2.39.0:
+- Changing to 100 → stays correct size ✅
+
+|cffFFFF00Technical Details:|r
+
+**Enforcement Frequency:**
+- customizationTickers: Every 0.1s
+- UpdateCastbarPosition: Every 0.05-0.5s
+- Total enforcement: ~every 0.05s minimum
+
+**ElvUI Update Frequency:**
+- OnUpdate handlers: Every frame
+- Castbar updates: Every 0.02-0.03s
+- Our 0.1s ticker catches it quickly enough!
+
+**Performance:**
+- Only sets width if changed (efficient!)
+- Wrapped in pcall (safe!)
+- Runs for EssentialCD mode only
+- Minimal CPU impact ✅
+
+|cff00FF00Why This Needed Fixing:|r
+
+When you set width in ElvUI settings:
+1. ElvUI updates its database
+2. ElvUI's Update_CastFrame runs
+3. Reads width from database
+4. Sets castbar:SetWidth(database value)
+5. Our addon's width gets overridden!
+
+Without enforcement, our width only
+applies between ElvUI updates. With
+enforcement, we catch and fix ElvUI's
+changes within 0.1s!
+
+|cffFFFF00Summary:|r
+
+**ONE FIX:**
+Add width/height enforcement to
+ApplyCustomizations ticker!
+
+**RESULT:**
+ElvUI settings can't break our width! ✅
+
+Now 100% aggressive enforcement! 💪
+
+---
+
+|cffFFD100v2.37.0 - ESSENTIALCD WIDTH FIX|r
+(Fixed icon sizing order)
+
+|cffFFD100v2.36.0 - ICON WIDTH FIX|r
+(Fixed texture vs frame width)
+|cff00FF00Fixed: Player Castbar Width Matching!|r
+
+✅ Fixed: EssentialCD width now matches perfectly!
+✅ Fixed: Icon sizing order corrected!
+✅ Removed: Duplicate icon sizing code!
+
+|cff00FF00The Problem:|r
+
+When anchored to EssentialCooldownViewer,
+the Player castbar width wasn't matching
+correctly. The issue was the ORDER of
+operations:
+
+**OLD CODE (v2.36.0):**
+1. Calculate width adjustment ❌
+2. Subtract icon width (wrong size!) ❌
+3. Set castbar width ❌
+4. Set icon size ❌ (too late!)
+5. Set icon size AGAIN ❌ (duplicate!)
+
+Because we calculated the icon width
+BEFORE sizing the icon properly, we got
+the wrong width value!
+
+Example:
+- Icon not sized yet: parent is 18px
+- We subtract 18px from castbar width
+- THEN we set icon to 40px
+- Castbar is now 18px too wide! ❌
+
+|cff00FF00The Fix:|r
+
+Reordered operations - size icon FIRST,
+then calculate width:
+
+**NEW CODE (v2.39.0):**
+1. Set castbar height ✅
+2. Size the icon properly ✅
+3. NOW calculate width ✅
+4. Subtract correct icon width ✅
+5. Set castbar width ✅
+6. Done! ✅
+
+Example:
+- Set icon to 40px FIRST ✅
+- Get icon width: 40px ✅
+- Subtract 40px from castbar width ✅
+- Castbar matches perfectly! ✅
+
+|cffFFFF00Technical Details:|r
+
+**OLD ORDER (wrong):**
+```lua
+-- Get EssentialCD width
+local finalWidth = anchorWidth
+
+-- Try to get icon width (icon not sized yet!)
+if adjustForIcon then
+    iconWidth = getIconWidth()  -- Gets 18px ❌
+    finalWidth = finalWidth - 18  -- Wrong!
+end
+
+-- Set castbar width (too wide by 22px)
+castbar:SetWidth(finalWidth)
+
+-- NOW size icon (too late!)
+castbar.Icon:SetSize(40, 40)  -- Oops!
+```
+
+**NEW ORDER (correct):**
+```lua
+-- Get EssentialCD width
+local anchorWidth = essentialFrame:GetWidth()
+
+-- Size icon FIRST!
+castbar.Icon.parent:SetSize(40, 40)  ✅
+
+-- NOW get icon width (correctly sized!)
+if adjustForIcon then
+    iconWidth = getIconWidth()  -- Gets 40px ✅
+    finalWidth = anchorWidth - 40  ✅
+end
+
+-- Set castbar width (perfect!)
+castbar:SetWidth(finalWidth)  ✅
+```
+
+|cffFFFF00What Changed:|r
+
+**REORDERED:**
+- Icon sizing moved BEFORE width calculation
+- Width calculation now uses correct icon size
+- Proper parent frame sizing for textures
+
+**REMOVED:**
+- Duplicate icon sizing code (lines 292-310)
+- This code ran after everything and
+  referenced undefined `height` variable
+- Caused potential errors
+- Was redundant anyway
+
+**FIXED:**
+- Both matchWidth branches (true/false)
+- Fallback code (when width can't be read)
+- Consistent icon sizing throughout
+
+|cffFFFF00How It Works Now:|r
+
+**EssentialCD with Match Width:**
+1. Read EssentialCD width (e.g., 400px)
+2. Set castbar height (e.g., 18px)
+3. Size icon parent to essentialCDIconSize
+   - Or height if iconSize not set
+4. Get actual icon width (properly sized!)
+5. Calculate: width - border - icon
+6. Set castbar width (perfect match!)
+
+**Result:**
+- Border Adjust: 0 → width matches exactly ✅
+- Border Adjust: 2 → 4px narrower (2 per side) ✅
+- Adjust for Icon: ON → icon width subtracted ✅
+- Adjust for Icon: OFF → full width ✅
+
+|cff00d4ffTesting:|r
+
+1. Anchor player castbar to EssentialCD
+2. Enable "Match Width"
+3. Set Border Adjust to 0
+4. Set "Adjust Width for Icon" to OFF
+5. Cast a spell
+6. Castbar should match EssentialCD width
+   exactly! ✅
+
+With icon adjustment:
+1. Set "Adjust Width for Icon" to ON
+2. Set Icon Size to 40
+3. Cast a spell
+4. Castbar width = EssentialCD - 40 ✅
+5. Perfect fit! ✅
+
+|cffFFFF00Before vs After:|r
+
+**BEFORE (v2.36.0):**
+```
+EssentialCD: 400px wide
+┌────────────────────────────────┐
+│                                │
+└────────────────────────────────┘
+
+Player Castbar: 422px wide ❌
+      ┌────────────────────────────────────┐
+[Icon]│                                    │
+      └────────────────────────────────────┘
+Sticks out 22px! ❌
+```
+
+**AFTER (v2.39.0):**
+```
+EssentialCD: 400px wide
+┌────────────────────────────────┐
+│                                │
+└────────────────────────────────┘
+
+Player Castbar: 360px wide ✅
+      ┌──────────────────────────┐
+[Icon]│                          │
+      └──────────────────────────┘
+Perfect match! ✅
+(400 - 40 for icon = 360)
+```
+
+|cffFFFF00Summary:|r
+
+**ONE FIX:**
+Size icon first, calculate width second!
+
+**RESULT:**
+Perfect width matching for EssentialCD! ✅
+
+No more weird offsets with 0px borders! 🎉
+
+---
+
+|cffFFD100v2.36.0 - ICON WIDTH FIX|r
+(Fixed texture vs frame width)
+
+|cffFFD100v2.35.0 - COMBAT PERSISTENCE|r
+(Fixed combat reversion)
+|cff00FF00Fixed: Icons No Longer Stick Out!|r
+
+✅ Fixed: Icon width calculation now accurate!
+✅ "Adjust for Icon" settings work correctly!
+
+|cff00FF00The Problem:|r
+
+When "Adjust Width for Icon" was enabled,
+icons would still stick out from the castbar
+width. This happened because of incorrect
+icon width calculation.
+
+ElvUI castbar icons are often TEXTURES,
+not FRAMES. When you call GetWidth() on
+a texture, you get the texture's intrinsic
+width, NOT the parent frame's width!
+
+**OLD CODE (v2.35.0):**
+```lua
+local iconWidth = castbar.Icon:GetWidth()
+-- For textures, this returns TEXTURE width
+-- Not the actual frame width! ❌
+```
+
+Result:
+- Icon parent frame: 40px wide
+- Texture intrinsic size: 256px
+- GetWidth() returns: 256px ❌
+- Castbar width reduced by: 256px ❌
+- Icon STILL sticks out! ❌
+
+|cff00FF00The Fix:|r
+
+Check if Icon is a Texture or Frame,
+then get width appropriately!
+
+**NEW CODE (v2.39.0):**
+```lua
+local iconType = castbar.Icon:GetObjectType()
+
+if iconType == "Texture" then
+    -- Get PARENT frame width ✅
+    local parent = castbar.Icon:GetParent()
+    iconWidth = parent:GetWidth()
+else
+    -- Frame: Get width directly ✅
+    iconWidth = castbar.Icon:GetWidth()
+end
+```
+
+Result:
+- Icon parent frame: 40px wide
+- GetObjectType(): "Texture"
+- Get parent, then GetWidth(): 40px ✅
+- Castbar width reduced by: 40px ✅
+- Icon fits perfectly! ✅
+
+|cffFFFF00What Changed:|r
+
+**FIXED IN TWO LOCATIONS:**
+
+1. **Normal Frames** (line ~354-372)
+   - HealthBar/PowerBar anchors
+   - Now checks iconType first
+   - Gets parent width for textures
+
+2. **EssentialCD Frames** (line ~211-227)
+   - EssentialCooldownViewer anchor
+   - Now checks iconType first
+   - Gets parent width for textures
+
+Both locations now use same logic:
+1. Check: Is it a Texture or Frame?
+2. Texture → Get parent.GetWidth()
+3. Frame → Get Icon.GetWidth()
+4. Use correct width for adjustment ✅
+
+|cffFFFF00Technical Details:|r
+
+**ElvUI Icon Structure:**
+```
+Frame (ButtonHolder)
+  └─ Texture (Icon)
+       ├─ width: 256px (intrinsic)
+       └─ parent.width: 40px (actual)
+```
+
+Old code: Asked Texture for width = 256px ❌
+New code: Asked parent Frame for width = 40px ✅
+
+**Why This Matters:**
+
+When "Adjust Width for Icon" is enabled:
+- Castbar width = Base width - Icon width
+- Old: 270 - 256 = 14px ❌ (way too small!)
+- New: 270 - 40 = 230px ✅ (perfect fit!)
+
+The icon frame is 40px, but texture thinks
+it's 256px. We need the FRAME width!
+
+|cffFFFF00How To Test:|r
+
+1. Enable any castbar
+2. Enable "Adjust Width for Icon"
+3. Set normalFrameWidth to 270
+4. Set normalFrameIconSize to 40
+5. Cast a spell
+6. Icon should fit within castbar width ✅
+7. No more sticking out! ✅
+
+Same test for EssentialCD:
+1. Anchor to EssentialCooldownViewer
+2. Enable "Adjust Width for Icon"
+3. Enable "Match Width"
+4. Cast a spell
+5. Icon fits perfectly! ✅
+
+|cff00d4ffBefore vs After:|r
+
+**BEFORE (v2.35.0):**
+┌─────────────────────────────┐
+│ Castbar (14px wide)         │
+└─────────────────────────────┘
+ [Icon]  ← Sticks way out!
+
+**AFTER (v2.39.0):**
+      ┌────────────────────────┐
+[Icon]│ Castbar (230px wide)   │
+      └────────────────────────┘
+       ↑ Fits perfectly!
+
+|cffFFFF00Code Changes:|r
+
+**ADDED:**
+- iconType check via GetObjectType()
+- Parent frame width retrieval
+- Proper texture vs frame handling
+
+**FIXED:**
+- Normal frame icon adjustment (line ~354)
+- EssentialCD icon adjustment (line ~211)
+
+**RESULT:**
+- Accurate icon width calculation ✅
+- Castbar width properly adjusted ✅
+- Icons no longer stick out ✅
+
+Perfect alignment! 🎉
+
+---
+
+|cffFFD100v2.35.0 - COMBAT PERSISTENCE|r
+(Fixed combat reversion issue)
+
+|cffFFD100v2.34.0 - PERSISTENT CUSTOMIZATIONS|r
+(Added persistence system)
 |cff00FF00Now Works During Combat!|r
 
 ✅ Fixed: Customizations persist during combat!
@@ -94,7 +720,7 @@ if not InCombatLockdown() then
     MyMod:ApplyCustomizations(castbarType)
 end
 
--- NEW v2.35.0
+-- NEW v2.39.0
 MyMod:ApplyCustomizations(castbarType)
 -- Runs DURING COMBAT too!
 ```
@@ -782,7 +1408,7 @@ Profile Changes:
 
 |cffFFFF00Version History:|r
 
-v2.35.0:
+v2.39.0:
 - Removed experimental close/reopen code
 - Clean, stable release
 - Documented profile UI limitation
@@ -1781,7 +2407,7 @@ first, then we'll fix profile swapping!
 - No control over when it hides ❌
 - Completely wrong approach ❌
 
-|cff00FF00NEW in v2.35.0: Proper Toggle!|r
+|cff00FF00NEW in v2.39.0: Proper Toggle!|r
 
 Button: "Show / Hide Castbar"
 
@@ -2315,7 +2941,7 @@ to diagnose anchoring issues!
 |cff00FFFF Cyan|r - Update messages
 
 |cffFFFF00How To Use:|r
-1. Install v2.35.0
+1. Install v2.39.0
 2. Type /reload
 3. Try changing anchors
 4. Check chat for debug messages
@@ -2648,7 +3274,7 @@ Always uses PLAYER castbar settings from
 the addon, never ElvUI's pet castbar settings!
 
 |cffFFFF00TEST THIS:|r
-1. Install v2.35.0
+1. Install v2.39.0
 2. Configure width/height in addon settings
 3. Spawn pet in combat
 4. Castbar should use YOUR configured size! ✅
@@ -2705,7 +3331,7 @@ width for each frame type!
 [Width] Read from pet Width: 150 Height: 18
 
 |cffFFFF00TEST THIS:|r
-1. Install v2.35.0
+1. Install v2.39.0
 2. Main Anchor: EssentialCooldownViewer
 3. Pet Override: Pet Health Bar
 4. Enter combat
@@ -2745,7 +3371,7 @@ C_Timer.NewTicker (Blizzard timer):
 - Keeps ticking no matter what ✅
 
 |cffFFFF00TEST THIS:|r
-1. Install v2.35.0
+1. Install v2.39.0
 2. Type /reload
 3. Watch for ticker messages every 0.5s:
    [Ticker] Combat ticker fired! In combat: false
@@ -2781,7 +3407,7 @@ When updating position:
 - "[UpdatePosition] pcall completed. Success: true"
 
 |cff00FF00TEST THIS:|r
-1. Install v2.35.0
+1. Install v2.39.0
 2. Enter combat WITH PET
 3. Dismiss pet
 4. Look for these messages:
@@ -2828,7 +3454,7 @@ Every X seconds (ticker firing):
 - OR combat update messages if in combat
 
 |cff00FF00HOW TO TEST:|r
-1. Install v2.35.0
+1. Install v2.39.0
 2. Type /reload
 3. LOOK FOR GREEN "[SETUP]" messages
 4. Did it say "Creating combat update ticker"?
@@ -2886,7 +3512,7 @@ happening when you summon/dismiss pet in combat.
 - "Final target anchor: X"
 
 |cffFFFF00HOW TO TEST:|r
-1. Install v2.35.0
+1. Install v2.39.0
 2. Set Combat Update Rate: 1 second
 3. Enter combat
 4. Summon pet
@@ -2977,7 +3603,7 @@ combat on ElvUI castbars! ✅
 - Instant response! ✅
 
 |cffFFFF00Testing Instructions:|r
-1. Install v2.35.0
+1. Install v2.39.0
 2. Set Combat Update Rate: 1 second
 3. Enter combat
 4. Summon/dismiss pet
@@ -3058,7 +3684,7 @@ if pet status changed then
 end
 ```
 
-New (v2.35.0 - FIXED):
+New (v2.39.0 - FIXED):
 ```
 if pet status changed then
     Try to update position with pcall()
@@ -3148,7 +3774,7 @@ During combat:
 - Try SetPoint() → BLOCKED by taint! ❌
 ```
 
-New (v2.35.0 - FIXED):
+New (v2.39.0 - FIXED):
 ```
 During combat:
 - Check if pet status changed

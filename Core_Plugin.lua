@@ -83,6 +83,53 @@ function MyMod:ApplyCustomizations(castbarType)
     if not castbar then return end
     
     pcall(function()
+        -- ENFORCE WIDTH/HEIGHT for EssentialCD (ElvUI keeps resetting them!)
+        if db.anchorFrame == "EssentialCooldownViewer" or 
+           (castbarType == "player" and db.usePetFrame and db.petAnchorFrame == "EssentialCooldownViewer") then
+            
+            if db.matchWidth then
+                local essentialFrame = _G["EssentialCooldownViewer"]
+                if essentialFrame then
+                    local anchorWidth = essentialFrame:GetWidth()
+                    if anchorWidth and anchorWidth > 0 then
+                        -- Calculate correct width
+                        local borderAdjust = (db.borderAdjust or 0) * 2
+                        local finalWidth = anchorWidth - borderAdjust
+                        
+                        -- Subtract icon width if enabled
+                        if db.essentialCDAdjustForIcon and castbar.Icon and castbar.Icon:IsShown() then
+                            local iconWidth = 0
+                            local iconType = castbar.Icon:GetObjectType()
+                            
+                            if iconType == "Texture" then
+                                local parent = castbar.Icon:GetParent()
+                                if parent and parent.GetWidth then
+                                    iconWidth = parent:GetWidth() or 0
+                                end
+                            else
+                                iconWidth = castbar.Icon:GetWidth() or 0
+                            end
+                            
+                            if iconWidth > 0 then
+                                finalWidth = finalWidth - iconWidth
+                            end
+                        end
+                        
+                        -- ENFORCE the width (fight ElvUI!)
+                        if castbar:GetWidth() ~= finalWidth then
+                            castbar:SetWidth(finalWidth)
+                        end
+                    end
+                end
+            end
+            
+            -- ENFORCE the height too
+            local height = db.essentialCDHeight or 18
+            if castbar:GetHeight() ~= height then
+                castbar:SetHeight(height)
+            end
+        end
+        
         -- Only apply if customization is enabled
         if db.customizeText then
             -- Update Cast Name Text Position
@@ -203,28 +250,57 @@ function MyMod:UpdateCastbarPosition(castbarType)
             
             local anchorWidth = essentialFrame:GetWidth()
             if anchorWidth and anchorWidth > 0 then
+                -- Set height for EssentialCooldownViewer FIRST
+                local height = db.essentialCDHeight or 18
+                castbar:SetHeight(height)
+                
+                -- IMPORTANT: Size the icon FIRST (before calculating width adjustment)
+                if castbar.Icon then
+                    local iconSize = db.essentialCDIconSize
+                    if not iconSize or iconSize == 0 then
+                        iconSize = height  -- Default to match castbar height
+                    end
+                    
+                    if iconSize > 0 then
+                        local iconType = castbar.Icon:GetObjectType()
+                        local parent = castbar.Icon:GetParent()
+                        
+                        if iconType == "Texture" and parent and parent.SetSize then
+                            -- Resize the PARENT frame (this is what actually matters!)
+                            parent:SetSize(iconSize, iconSize)
+                        elseif iconType ~= "Texture" then
+                            castbar.Icon:SetSize(iconSize, iconSize)
+                        end
+                    end
+                end
+                
+                -- NOW calculate width (after icon is properly sized)
                 -- Apply border adjustment to width
                 local borderAdjust = (db.borderAdjust or 0) * 2
                 local finalWidth = anchorWidth - borderAdjust
                 
-                -- Adjust width for icon if enabled
+                -- Adjust width for icon if enabled (icon is now properly sized!)
                 if db.essentialCDAdjustForIcon and castbar.Icon and castbar.Icon:IsShown() then
-                    local iconWidth = castbar.Icon:GetWidth() or 0
+                    local iconWidth = 0
+                    local iconType = castbar.Icon:GetObjectType()
+                    
+                    if iconType == "Texture" then
+                        -- For textures, get parent frame width
+                        local parent = castbar.Icon:GetParent()
+                        if parent and parent.GetWidth then
+                            iconWidth = parent:GetWidth() or 0
+                        end
+                    else
+                        -- For frames, get width directly
+                        iconWidth = castbar.Icon:GetWidth() or 0
+                    end
+                    
                     if iconWidth > 0 then
                         finalWidth = finalWidth - iconWidth
                     end
                 end
                 
                 castbar:SetWidth(finalWidth)
-                
-                -- Set height for EssentialCooldownViewer
-                local height = db.essentialCDHeight or 18
-                castbar:SetHeight(height)
-                
-                -- Fix icon size to match height (square icon)
-                if castbar.Icon then
-                    castbar.Icon:SetSize(height, height)
-                end
                 
                 -- Use EssentialCooldownViewer-specific offsets with border centering
                 local finalOffsetX = (db.essentialCDOffsetX or 0) + (db.borderAdjust or 0)
@@ -240,30 +316,24 @@ function MyMod:UpdateCastbarPosition(castbarType)
                 
                 -- Fix icon size
                 if castbar.Icon then
-                    castbar.Icon:SetSize(height, height)
+                    local iconSize = db.essentialCDIconSize
+                    if not iconSize or iconSize == 0 then
+                        iconSize = height
+                    end
+                    
+                    if iconSize > 0 then
+                        local iconType = castbar.Icon:GetObjectType()
+                        local parent = castbar.Icon:GetParent()
+                        
+                        if iconType == "Texture" and parent and parent.SetSize then
+                            parent:SetSize(iconSize, iconSize)
+                        elseif iconType ~= "Texture" then
+                            castbar.Icon:SetSize(iconSize, iconSize)
+                        end
+                    end
                 end
                 
                 castbar:SetPoint(db.anchorPoint or "CENTER", essentialFrame, db.relativePoint or "CENTER", finalOffsetX, finalOffsetY)
-            end
-            
-            -- Force icon size on EVERY update (ElvUI resets it constantly)
-            if castbar.Icon then
-                local iconSize = db.essentialCDIconSize
-                if not iconSize or iconSize == 0 then
-                    iconSize = height  -- Default to match castbar height
-                end
-                
-                if iconSize > 0 then
-                    local iconType = castbar.Icon:GetObjectType()
-                    local parent = castbar.Icon:GetParent()
-                    
-                    if iconType == "Texture" and parent and parent.SetSize then
-                        -- Resize the PARENT frame
-                        parent:SetSize(iconSize, iconSize)
-                    elseif iconType ~= "Texture" then
-                        castbar.Icon:SetSize(iconSize, iconSize)
-                    end
-                end
             end
             
             -- Update previous anchor tracker
@@ -353,7 +423,20 @@ function MyMod:UpdateCastbarPosition(castbarType)
                 -- Wrapped in pcall to avoid taint errors with icon width during combat
                 if db.adjustForIcon and castbar.Icon and castbar.Icon:IsShown() then
                     pcall(function()
-                        local iconWidth = castbar.Icon:GetWidth() or 0
+                        local iconWidth = 0
+                        local iconType = castbar.Icon:GetObjectType()
+                        
+                        if iconType == "Texture" then
+                            -- For textures, get parent frame width
+                            local parent = castbar.Icon:GetParent()
+                            if parent and parent.GetWidth then
+                                iconWidth = parent:GetWidth() or 0
+                            end
+                        else
+                            -- For frames, get width directly
+                            iconWidth = castbar.Icon:GetWidth() or 0
+                        end
+                        
                         if iconWidth > 0 then
                             customWidth = customWidth - iconWidth
                         end
@@ -1196,8 +1279,8 @@ function MyMod:InsertOptions()
                         },
                         borderAdjust = {
                             order = 12, type = "range", name = "Border Adjustment",
-                            desc = "Reduce width by this amount to account for borders (2px borders = set to 2). Automatically centers the castbar - no need to adjust X offset!",
-                            min = 1, max = 50, step = 0.5,
+                            desc = "Reduce width by this amount to account for borders (2px borders = set to 2). Set to 0 for no adjustment. Automatically centers the castbar - no need to adjust X offset!",
+                            min = 0, max = 50, step = 0.5,
                             disabled = function() 
                                 local db = getDB()
                                 if not db.enabled or not db.matchWidth then return true end

@@ -12,7 +12,7 @@ else
     local CA = ElvUI_Castbar_Anchors
     local LibDBIcon = LibStub("LibDBIcon-1.0")
 
-    CA.version = "2.35.0"
+    CA.version = "2.39.0"
     CA.updateTickers = {}
     CA.selectedCastbar = "player"
     CA.useCharacterSettings = false
